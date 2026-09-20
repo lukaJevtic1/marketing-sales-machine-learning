@@ -1,0 +1,6 @@
+"0","dataset$customer_age_group <- cut("
+"0","  dataset$customer_age,"
+"0","  breaks = c(0, 25, 40, 60, 100),"
+"0","  labels = c(""Mladi (do 25)"", ""Srednje doba (26-40)"", ""Stariji (41-60)"", ""Veterani (60+)""),"
+"0","  include.lowest = TRUE"
+"0",")"

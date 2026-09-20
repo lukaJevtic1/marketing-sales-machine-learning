@@ -1,0 +1,1 @@
+"0","dataset$unspent_budget = dataset$marketing_budget_usd - dataset$total_ad_spend"
