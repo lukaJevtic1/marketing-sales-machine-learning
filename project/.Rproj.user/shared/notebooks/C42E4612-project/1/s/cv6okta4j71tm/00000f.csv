@@ -1,0 +1,3 @@
+"0","dataset$log_budget = log(dataset$marketing_budget_usd)"
+"0","dataset$log_traffic = log(dataset$website_traffic)"
+"0","dataset$log_followers = log(dataset$social_media_followers + 1)"
