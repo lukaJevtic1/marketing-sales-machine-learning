@@ -1,8 +1,0 @@
-"0","```r
-ggplot(dataset, aes(x = \"\", y = sales_revenue_usd)) +
-  geom_boxplot(fill = \"#89CFF0\", color = \"#2C3E50\", outlier.color = \"#E74C3C\", outlier.size = 1.5, outlier.shape = 16) +
-  theme_minimal() +
-  labs(title = \"Boxplot - Sales Revenue\", x = \"Sales Revenue\", y = \"USD\") +
-  theme(plot.title = element_text(hjust = 0.5, face = \"bold\"),
-        axis.text.x = element_blank(), axis.ticks.x = element_blank())
-```"

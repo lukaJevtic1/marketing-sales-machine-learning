@@ -1,9 +1,0 @@
-"0","```r
-names(dataset)
-```"
-"1"," [1] \"id\"                          \"date\"                        \"region\"                      \"sales_channel\"               \"product_category\"           
- [6] \"customer_segment\"            \"season\"                      \"marketing_budget_usd\"        \"ad_spend_online_usd\"         \"ad_spend_offline_usd\"       
-[11] \"num_promotions\"              \"discount_percentage\"         \"num_sales_representatives\"   \"customer_age\"                \"customer_satisfaction_score\"
-[16] \"competitor_price_index\"      \"website_traffic\"             \"conversion_rate\"             \"email_open_rate\"             \"social_media_followers\"     
-[21] \"days_since_last_purchase\"    \"num_previous_purchases\"      \"sales_revenue_usd\"          
-"

@@ -1,6 +1,0 @@
-"0","```r
-total_duplicate_rows = sum(duplicated(dataset))
-print(paste(\"Ukupan broj dupliranih redova u dataset-u:\", total_duplicate_rows))
-```"
-"1","[1] \"Ukupan broj dupliranih redova u dataset-u: 0\"
-"

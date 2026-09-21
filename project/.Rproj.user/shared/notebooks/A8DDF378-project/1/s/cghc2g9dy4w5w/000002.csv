@@ -1,5 +1,0 @@
-"0","```r
-sum(dataset$customer_satisfaction_score < 1 | dataset$customer_satisfaction_score > 5, na.rm = TRUE)
-```"
-"1","[1] 0
-"
