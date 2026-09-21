@@ -1,0 +1,5 @@
+"0","```r
+sum(dataset$discount_percentage < 0 | dataset$discount_percentage > 100, na.rm = TRUE)
+```"
+"1","[1] 0
+"

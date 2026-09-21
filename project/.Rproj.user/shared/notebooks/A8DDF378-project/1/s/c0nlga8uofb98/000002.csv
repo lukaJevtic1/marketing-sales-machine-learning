@@ -1,0 +1,36 @@
+"0","```r
+summary(dataset)
+```"
+"1","       id            date              region          sales_channel      product_category   customer_segment      season          marketing_budget_usd
+ Min.   :    1   Length:60000       Length:60000       Length:60000       Length:60000       Length:60000       Length:60000       Min.   :   500      
+ 1st Qu.:15001   Class :character   Class :character   Class :character   Class :character   Class :character   Class :character   1st Qu.:  2184      
+ Median :30001   Mode  :character   Mode  :character   Mode  :character   Mode  :character   Mode  :character   Mode  :character   Median :  4922      
+ Mean   :30001                                                                                                                     Mean   : 10032      
+ 3rd Qu.:45000                                                                                                                     3rd Qu.: 11040      
+ Max.   :60000                                                                                                                     Max.   :500000      
+                                                                                                                                                       
+ ad_spend_online_usd ad_spend_offline_usd num_promotions  discount_percentage num_sales_representatives  customer_age  customer_satisfaction_score
+ Min.   :   100.1    Min.   :    50.03    Min.   :0.000   Min.   : 0.00       Min.   : 1.00             Min.   :18.0   Min.   :2.000              
+ 1st Qu.:   816.8    1st Qu.:   486.86    1st Qu.:2.000   1st Qu.:10.10       1st Qu.:13.00             1st Qu.:31.0   1st Qu.:2.700              
+ Median :  1876.4    Median :  1152.39    Median :4.000   Median :20.00       Median :25.00             Median :46.0   Median :3.500              
+ Mean   :  4018.4    Mean   :  2508.81    Mean   :4.493   Mean   :20.05       Mean   :24.93             Mean   :45.8   Mean   :3.496              
+ 3rd Qu.:  4336.9    3rd Qu.:  2676.80    3rd Qu.:7.000   3rd Qu.:30.00       3rd Qu.:37.00             3rd Qu.:60.0   3rd Qu.:4.200              
+ Max.   :235211.8    Max.   :138327.25    Max.   :9.000   Max.   :40.00       Max.   :49.00             Max.   :74.0   Max.   :5.000              
+                                                          NA's   :1808                                                 NA's   :1844               
+ competitor_price_index website_traffic   conversion_rate   email_open_rate  social_media_followers days_since_last_purchase num_previous_purchases
+ Min.   :0.70           Min.   :    100   Min.   :0.00000   Min.   :0.0024   Min.   :    100        Min.   :  0.0            Min.   : 0.000        
+ 1st Qu.:0.85           1st Qu.:   2961   1st Qu.:0.04580   1st Qu.:0.1458   1st Qu.:    771        1st Qu.: 89.0            1st Qu.: 3.000        
+ Median :1.00           Median :   8065   Median :0.07890   Median :0.2166   Median :   2971        Median :182.0            Median : 5.000        
+ Mean   :1.00           Mean   :  24426   Mean   :0.09093   Mean   :0.2308   Mean   :  22198        Mean   :181.5            Mean   : 4.985        
+ 3rd Qu.:1.15           3rd Qu.:  22057   3rd Qu.:0.12323   3rd Qu.:0.3009   3rd Qu.:  11387        3rd Qu.:273.0            3rd Qu.: 6.000        
+ Max.   :1.30           Max.   :2000000   Max.   :0.53470   Max.   :0.7537   Max.   :5000000        Max.   :364.0            Max.   :17.000        
+                                                            NA's   :1790                            NA's   :1836                                   
+ sales_revenue_usd 
+ Min.   :   481.1  
+ 1st Qu.:  2744.2  
+ Median :  4340.1  
+ Mean   :  5911.1  
+ 3rd Qu.:  7091.6  
+ Max.   :190377.4  
+                   
+"

@@ -1,0 +1,6 @@
+"0","```r
+sapply(dataset[sapply(dataset, is.character)], function(x) length(unique(x)))
+```"
+"1","            date           region    sales_channel product_category customer_segment           season 
+            1461                7                5                5                4                4 
+"

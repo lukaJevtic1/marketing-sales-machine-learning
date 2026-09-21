@@ -1,0 +1,8 @@
+"0","```r
+ggplot(dataset, aes(x = \"\", y = website_traffic)) +
+  geom_boxplot(fill = \"#FFB347\", color = \"#2C3E50\", outlier.color = \"#E74C3C\", outlier.size = 1.5, outlier.shape = 16) +
+  theme_minimal() +
+  labs(title = \"Boxplot - Website Traffic\", x = \"Website Traffic\", y = \"Visits\") +
+  theme(plot.title = element_text(hjust = 0.5, face = \"bold\"),
+        axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```"

@@ -1,0 +1,35 @@
+"0","```r
+table(dataset$region)
+```"
+"1","
+Alexandria      Amman      Cairo Casablanca      Dubai     Kuwait     Riyadh 
+      9027       4206      14984       4183      10890       4739      11971 
+"
+"0","```r
+table(dataset$sales_channel)
+```"
+"1","
+Direct Sales       Online Retail Store Social Media    Wholesale 
+        9209        18010        14954         5840        11987 
+"
+"0","```r
+table(dataset$product_category)
+```"
+"1","
+       Clothing       Cosmetics     Electronics Food & Beverage Home Appliances 
+          12016            9068           13118           15023           10775 
+"
+"0","```r
+table(dataset$customer_segment)
+```"
+"1","
+Corporate       New   Regular       VIP 
+     9113     18011     23906      8970 
+"
+"0","```r
+table(dataset$season)
+```"
+"1","
+   Q1    Q2    Q3    Q4 
+14898 14954 15124 15024 
+"

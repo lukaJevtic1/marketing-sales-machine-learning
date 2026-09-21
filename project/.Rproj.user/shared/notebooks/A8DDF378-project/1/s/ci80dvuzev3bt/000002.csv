@@ -1,0 +1,14 @@
+"0","```r
+colSums(is.na(dataset))
+```"
+"1","                         id                        date                      region               sales_channel            product_category 
+                          0                           0                           0                           0                           0 
+           customer_segment                      season        marketing_budget_usd         ad_spend_online_usd        ad_spend_offline_usd 
+                          0                           0                           0                           0                           0 
+             num_promotions         discount_percentage   num_sales_representatives                customer_age customer_satisfaction_score 
+                          0                        1808                           0                           0                        1844 
+     competitor_price_index             website_traffic             conversion_rate             email_open_rate      social_media_followers 
+                          0                           0                           0                        1790                           0 
+   days_since_last_purchase      num_previous_purchases           sales_revenue_usd 
+                       1836                           0                           0 
+"
