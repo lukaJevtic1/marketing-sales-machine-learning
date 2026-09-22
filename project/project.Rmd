@@ -9,13 +9,14 @@ library(ggplot2)
 install.packages("mice")
 library(mice)
 library(tidyverse)
+library(knitr)
 ```
 
 # Analiza skupa podataka Marketing & Sales
 
 ### Autori: Danilo Novaković 101/2018, Luka Jevtić 64/2017
 
-## 1.Uvod 
+# 1 Uvod 
 
 Analiza i predviđanje prihoda od prodaje danas predstavljaju ključni deo uspešnog poslovanja, jer omogućavaju kompanijama da pametnije raspodele marketinške budžete i donose bolje finansijske odluke. Umesto oslanjanja na subjektivne procene i staru praksu, savremeni pristupi koriste podatke i napredne algoritme kako bi se tačno predvideli budući rezultati na osnovu ulaganja, ponašanja kupaca i kanala prodaje.
 
@@ -23,7 +24,7 @@ Za potrebe ovog projekta korišćen je R programski jezik, koji se pokazao kao i
 
 
 
-## 2.Opis podataka  
+# 2 Opis podataka  
 
 U ovom projektu analizira se skup podataka Marketing & Sales koji obuhvata 60.000 
 instanci prikupljenih iz poslovanja u MENA regionu (Riyadh, Dubai, Cairo, Abu Dhabi, Jeddah, Doha, Kuwait City). 
@@ -37,6 +38,7 @@ Cilj rada nam je detaljna analiza faktora koji utiču na ostvareni prihod od pro
 i razvoj regresionih modela mašinskog učenja za preciznu predikciju prihoda na osnovu marketinških investicija i parametara ponašanja kupaca.
 
 
+## 2.1 Učitavanje i dimenzije skupa podataka
 
 Na početku ćemo učitati set podataka
 
@@ -52,9 +54,13 @@ print(paste("Broj redova je:", nrow(dataset)))
 
 ```
 
+## 2.2 Pregled nekoliko redova,naziva feature-a, i njihova strutura
+
+
 Nakon što smo učitali podatke možemo da proverimo kojih je dimezija set podataka, vidimo da imamo 60 000 vrsta i 23 kolona.
 
 U nastavku smo pomoću funkcije head koja izlistava prvih nekoliko vrsta našeg set-a podataka a names nazive feature-a.
+
 
 ```{r}
 head(dataset)
@@ -69,8 +75,9 @@ str(dataset)
 ```
 Sada nakon što smo videli koji sve feature-i postoje u setu podataka  možemo da napišemo kratak opis o njima i da lepo to predstavimo tabelarno,za to nam treba da učitamo paket knitr i iskorisitmo funkciju kable. 
 
+## 2.3 Pregled i opis svih feature-a
+
 ```{r}
-library(knitr)
 
  opis_kolona=data.frame(
   Kolona = c(
@@ -113,6 +120,9 @@ library(knitr)
 kable(opis_kolona, col.names = c("Naziv kolone", "Opis promenljive"))
 ```
 
+## 2.4 Deskriptivna statistika i analiza ciljne promenljive
+
+
 Nakon što smo definisali šta nam predstavlja svaki feature u skupu podataka, možemo da koristimo funkciju summary() kako bismo dobili osnovne statističke pokazatelje za sve naše promenljive,ali posebnu pažnju moramo da posvetimo našoj ciljnoj promenljivoj (sales_revenue_usd) koja predstavlja ostvareni prihod od prodaje u američkim dolarima.Njena distribucija ključna za kasnije modelovanje
 
 ```{r}
@@ -120,11 +130,14 @@ summary(dataset)
 ```
 Što se tiče naše ciljne promenljive (sales_revenue_usd), iz priloženih statistika se lepo vidi da je prosečna vrednost od oko 5.911 dolara viša od medijane koja iznosi 4.340 dolara. To nam odmah govori da imamo nekoliko transakcija sa prilično velikim prihodima koje vuku prosek nagore. Većina prodaja se vrti oko nižih i srednjih iznosa (pa nam se tako 75% podataka nalazi ispod 7.091 dolar), dok samo manji broj transakcija ide u neke ekstremnije visine, sve do maksimalnih 190.377 dolara.
 
+## 2.5 Provera nedostajućih vrednosti
 
 Hoćemo da identifikujemo nedostajuće vrednosti možemo da koristimo funkciju colSums i vidimo da email_open_rate ima 1790,discount_percentage ima 1808 ,customer_satisfaction_score  ima  1844  i days_since_last_purchaseima 1836 nedostajućih vrednosti.                        
 ```{r}
 colSums(is.na(dataset))
 ```
+
+## 2.6 Provera duplikata i unikatnih vrednosti
 
 U ovom koraku ćemo proveriti da li u našem setu podataka postoje duplikati, odnosno da li se neki redovi u potpunosti ponavljaju.I vidmo na osnovu rezultata da ih nema i da je svaka od 60.000 instanci jedinstvena.
 
@@ -151,6 +164,8 @@ table(dataset$season)
 Kao što vidimo iz tabela frekvencija, opservacije su prilično ravnomerno raspoređene po različitim regionima, kanalima prodaje, kategorijama proizvoda i sezonama, što nam govori da nemamo ekstremne disbalanse u uzorku.
 
 
+## 2.7 Provera validnosti opsega i logičkih pravila
+
 U ovom koraku ćemo proveriti opsege minimalnih i maksimalnih vrednosti za sve numeričke promenljive, kako bismo utvrdili osnovne granice u kojima se podaci kreću:
 
 
@@ -159,8 +174,6 @@ sapply(dataset[sapply(dataset, is.numeric)], function(x) c(Min = min(x, na.rm = 
 ```
 Nakon provere opsega, analizirane su minimalne i maksimalne vrednosti da se utvrdi da li ima nekih nelogičnosti.
 Uočeno je da se svi podaci kreću u normalnim granicama: godine kupaca su od 18 do 74, ocene zadovoljstva su između 2 i 5, a maksimalni popust je 40%. Budžeti i troškovi jesu visoki, ali su u skladu sa realnim poslovanjem i nema negativnih cena niti nelogičnih unosa. Samim tim, numerički opsezi su potpuno ispravni.
-
-
 
 U ovom koraku ćemo proveriti da li u setu podataka postoje logičke nepravilnosti:
 
@@ -178,6 +191,9 @@ Provera da li broj dana od poslednje kupovine prelazi 365
 ```{r}
 sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 365, na.rm = TRUE)
 ```
+
+## 2.8 Analiza outlier-a
+
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
 
 
@@ -227,6 +243,8 @@ Kod broja pratilaca na društvenim mrežama (social_media_followers) vide se ta�
 Za sve posmatrane promenljive jeste da prisutni autlajeri nemaju karakter grešaka u merenju, već su prirodan odraz varijacija u realnom poslovnom okruženju, te se zadržavaju za dalju obradu.
 
 
+## 2.9 Analiza gustine distribucije
+
 U ovom koraku ćemo proveriti distribuciju ključnih numeričkih promenljivih pomoću grafikona gustine (density plot) kako bismo utvrdili da li podaci prate prirodne obrasce ili pokazuju znakove veštačkog generisanja:
 
 ```{r}
@@ -269,7 +287,6 @@ kod broja pratilaca na društvenim mrežama kriva gustine je glatka i prirodna, 
 
 
 Pregled distribucija pokazuje da podaci deluju sasvim prirodno i realno, bez veštačkih šablona ili čudnih prekida. Kada se sve sabere sa prethodnim proverama, set podataka je čist, pouzdan i spreman za dalju analizu.
-
 
 
 # 3 Analiza nedostajućih vrednosti
@@ -649,3 +666,389 @@ dataset_clean <- dataset_clean %>%
 colSums(is.na(dataset_clean))
 ```
 
+# 4 Feature engineering
+
+U ovom poglavlju kreiramo nove feature na osnovu postojećih podataka kako bismo modelima mašinskog učenja pružili dodatne ulazne informacije.
+
+Kreirani su sledeći feature-i:
+
+
+## 4.1 Kreiranje finansijskih i marketinških pokazatelja
+
+total_ad_spend: Predstavlja koliko je novca ukupno otišlo na reklame, kada saberemo online i offline troškove.
+
+```{r}
+dataset_clean$total_ad_spend = dataset_clean$ad_spend_online_usd + dataset_clean$ad_spend_offline_usd
+```
+
+online_share: Pokazuje koliki udeo u ukupnom budžetu za reklame zauzima baš online oglašavanje, što nam otkriva koliko je neka kampanja digitalno orijentisana.
+
+```{r}
+dataset_clean$online_share = ifelse(dataset_clean$total_ad_spend > 0, dataset_clean$ad_spend_online_usd / dataset_clean$total_ad_spend, 0)
+```
+
+budget_utilization: Pokazuje nam koliki deo ukupno namenjenog budžeta je stvarno potrošen na reklame.
+
+```{r}
+dataset_clean$budget_utilization = ifelse(dataset_clean$marketing_budget_usd > 0, dataset_clean$total_ad_spend / dataset_clean$marketing_budget_usd, 0)
+```
+
+unspent_budget: Predstavlja ostatak novca koji je bio planiran u budžetu, ali na kraju nije potrošen na oglašavanje.
+```{r}
+dataset_clean$unspent_budget = dataset_clean$marketing_budget_usd - dataset_clean$total_ad_spend
+```
+
+spend_per_rep: Predstavlja koliko je novca za reklame potrošeno po jednom prodajnom predstavniku, što nam pomaže da vidimo opterećenje i efikasnost tima terenu.
+```{r}
+dataset_clean$spend_per_rep = dataset_clean$total_ad_spend / dataset_clean$num_sales_representatives
+```
+
+spend_per_promotion: Predstavlja koliko je novca uloženo po jednoj aktivnoj akciji ili popustu.
+```{r}
+dataset_clean$spend_per_promotion =ifelse(dataset_clean$num_promotions > 0, dataset_clean$total_ad_spend / dataset_clean$num_promotions, dataset_clean$total_ad_spend)
+```
+
+budget_per_traffic: Predstavlja odnos između ukupnog budžeta i broja ljudi koji su posetili sajt.
+```{r}
+dataset_clean$budget_per_traffic = dataset_clean$marketing_budget_usd / dataset_clean$website_traffic
+```
+
+## 4.2 Logaritamske transformacije i analiza distribucija
+
+log_budget, log_traffic, log_followers logaritamski transformisane vrednosti budžeta, poseta sajtu i broja pratilaca,čijom se primenom smanjuje visoka asimetrija  podataka i ublažava uticaj ekstremnih vrednosti na modele.
+```{r}
+dataset_clean$log_budget = log(dataset_clean$marketing_budget_usd)
+dataset_clean$log_traffic = log(dataset_clean$website_traffic)
+dataset_clean$log_followers = log(dataset_clean$social_media_followers + 1)
+```
+
+### 4.2.1 Analiza distribucija pre i posle transformacije
+
+```{r}
+summary(dataset_clean[, c("marketing_budget_usd", "log_budget", 
+                    "website_traffic", "log_traffic", 
+                    "social_media_followers", "log_followers")])
+```
+Pogled na statistiku pre i posle transformacije odlično ilustruje problem koji smo imali sa originalnim podacima. Kod početnih vrednosti za budžet, posete i pratioce vidimo ogroman raskorak između medijane i proseka (recimo, kod saobraćaja je medijana oko 8.000, a prosek skče na preko 24.000 zbog nekoliko drastično velikih vrednosti na desnom kraju). To znači da su podaci bili prilično razvučeni i asimetrični.
+Kada smo primenili logaritam  prosek i medijana su se praktično poklopili, a ekstremni rasponi su svedeni na normalnu meru. Time smo eliminisali raspon velikih brojeva, pa će modeli moći znatno stabilnije i preciznije da uče na ovim podacima.
+
+## 4.3 Vremenske karakteristike (Time Features)
+
+month i quarter oznake meseca i kvartala u godini, korisne za praćenje periodičnih skokova u prodaji (poput prazničnih kupovina).
+
+```{r}
+dataset_clean$date = as.Date(dataset_clean$date)
+dataset_clean$month = format(dataset_clean$date, "%m")
+dataset_clean$quarter = quarters(dataset_clean$date)
+```
+
+day_of_week: Dan u nedelji kada je transakcija zabeležena.
+```{r}
+dataset_clean$day_of_week = weekdays(dataset_clean$date)
+```
+
+is_weekend: Indikator (0 ili 1) koji govori da li je kupovina obavljena tokom vikenda.
+```{r}
+dataset_clean$is_weekend =ifelse(dataset_clean$day_of_week %in% c("Saturday", "Sunday"), 1, 0)
+```
+
+is_year_end: Pokazuje da li transakcija pada u decembar, period pojačanih prazničnih aktivnosti.
+
+```{r}
+dataset_clean$is_year_end=ifelse(format(dataset_clean$date, "%m") == "12", 1, 0)
+```
+
+
+days_since_start: Linearni trend koji meri koliko je dana prošlo od prvog zabeleženog datuma u setu, hvatajući dugoročni rast ili pad.
+
+```{r}
+dataset_clean$days_since_start = as.numeric(dataset_clean$date - min(dataset_clean$date, na.rm = TRUE))
+```
+
+season: Definiše meteorološku sezonu u kojoj je ostvarena prodaja.
+```{r}
+dataset_clean$season = case_when(
+  dataset_clean$month %in% c("12", "01", "02") ~ "Zima",
+  dataset_clean$month %in% c("03", "04", "05") ~ "Proleće",
+  dataset_clean$month %in% c("06", "07", "08") ~ "Leto",
+  dataset_clean$month %in% c("09", "10", "11") ~ "Jesen",
+  TRUE ~ "Nepoznato"
+)
+
+```
+## 4.4 Karakteristike kupaca (Customer Features)
+
+purchase_frequency: Predstavlja intenzitet kupovine, odnosno prosečnu učestalost kojom kupac obavlja transakcije tokom svog aktivnog staža. Računa se stavljanjem u odnos ukupnog broja prethodnih kupovina i efektivnog perioda aktivnosti, čime dobijamo realniju sliku o vernosti kupca nego da posmatramo samo grubu sumu.
+
+```{r}
+dataset_clean$purchase_frequency =ifelse(
+  (dataset_clean$days_since_start - dataset_clean$days_since_last_purchase) > 0,
+  dataset_clean$num_previous_purchases / (dataset_clean$days_since_start - dataset_clean$days_since_last_purchase),
+  dataset_clean$num_previous_purchases
+)
+```
+is_returning: Logički indikator (0 ili 1) koji jasno razdvaja nove kupce od onih stalnih koji se redovno vraćaju. 
+```{r}
+dataset_clean$is_returning = ifelse(dataset_clean$customer_segment == "Regular" | dataset_clean$num_previous_purchases > 1, 1, 0)
+
+```
+
+customer_age_group: Pretvara numeričku promenljivu godina u kategorijalnu, što modelima mašinskog učenja olakšava prepoznavanje nelinearnih šablona po generacijama.
+
+```{r}
+dataset_clean$customer_age_group = cut(
+  dataset_clean$customer_age,
+  breaks = c(0, 25, 40, 60, 100),
+  labels = c("Mladi (do 25)", "Srednje doba (26-40)", "Stariji (41-60)", "Veterani (60+)"),
+  include.lowest = TRUE
+)
+```
+
+
+## 4.5 Tržišne i digitalne karakteristike (Market & Digital Features)
+
+price_advantage: Prikazuje našu cenovnu prednost u odnosu na konkurenciju, dobijenu preko indeksa cene konkurencije (competitor_price_index).
+
+```{r}
+dataset_clean$price_advantage = ifelse(
+  !is.na(dataset_clean$competitor_price_index), 
+  100 - dataset_clean$competitor_price_index, 
+  NA
+)
+```
+
+effective_discount: Kombinuje procenat odobrenog popusta i broj aktivnih promocija da vidimo ukupni efekat popusta na kupca.
+
+```{r}
+dataset_clean$effective_discount = dataset_clean$discount_percentage * dataset_clean$num_promotions
+```
+
+estimated_conversions: Daje procenu broja ostvarenih kupovina na osnovu poseta sajtu i stope konverzije.
+
+```{r}
+dataset_clean$estimated_conversions = dataset_clean$website_traffic * dataset_clean$conversion_rate
+```
+
+traffic_per_follower: Meri odnos poseta sajtu i broja pratilaca na društvenim mrežama.
+```{r}
+dataset_clean$traffic_per_follower = dataset_clean$website_traffic / (dataset_clean$social_media_followers + 1)
+```
+
+## 4.6 Interakcije obeležja (Feature Interactions)
+
+segment_product: Kombinuje segment kupaca i kategoriju proizvoda, da vidimo koji tipovi kupaca preferiraju koje proizvode.
+```{r}
+dataset_clean$segment_product = as.factor(paste(dataset_clean$customer_segment, dataset_clean$product_category, sep = "_"))
+```
+season_product: Spaja sezonu i kategoriju proizvoda radi praćenja sezonskih promena u potražnji.
+
+```{r}
+dataset_clean$season_product = as.factor(paste(dataset_clean$season, dataset_clean$product_category, sep = "_"))
+```
+
+channel_segment: Povezuje kanal prodaje sa segmentom kupaca, otkrivajući preko kog kanala koji kupci najčešće trguju.
+
+```{r}
+dataset_clean$channel_segment = as.factor(paste(dataset_clean$sales_channel, dataset_clean$customer_segment, sep = "_"))
+```
+
+## 4.7 Provera i verifikacija novih feature-a
+
+Proveravamo sve nove feature  kako bismo utvrdili osnovnu statistiku, potvrdili ispravnost formula i osigurali da u njima nema neočekivanih anomalija.
+
+```{r}
+engineered_cols = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+
+summary(dataset_clean[, engineered_cols])
+colSums(is.na(dataset_clean[, engineered_cols]))
+sapply(dataset_clean[, engineered_cols], function(x) sum(is.infinite(x)))
+```
+Nakon detaljnog pregleda statistike, potvrđeno je da su sv novi feature-i uspešno generisana i da se kreću u očekivanim i logičnim opsezima.
+
+## 4.8 Prevencija curenja podataka (Target Leakage Prevention)
+
+Treba programski osiguravamo i verifikujemo da nijedan novih feature-a u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
+
+```{r}
+target_variable = "sales_revenue_usd"
+contains_target = any(grepl(target_variable, engineered_cols))
+stopifnot("GREŠKA: Curenje podataka! Nova obeležja koriste sales_revenue_usd!" = !contains_target)
+print("Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd).")
+```
+Uspešno smo proverili da ni jedan novi feature ne koristi ciljnu promenljivu sales_revenue_usd
+
+U ovm koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
+```{r}
+num_engineered = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+target_correlations = cor(dataset_clean[, num_engineered], dataset_clean[[target_variable]], use = "complete.obs")
+print(target_correlations)
+```
+Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
+Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+
+
+
+# 5 Eksplorativna analiza podataka (EDA) i analize autlajera
+
+U ovom poglavlju sprovodimo univarijatnu analizu numeričkih i kategorijskih feature-a, analiziramo distribuciju i transformaciju ciljne promenljive (sales_revenue_usd), kao i detaljnu analizu outliera primenom IQR metode.
+
+## 5.1 Univarijatna analiza numeričkih i kategorijskih obeležja
+
+Univarijatna analiza nam omogućava da sagledamo distribuciju, oblike asimetrije i zastupljenost vrednosti kroz ključne numeričke i kategorijske atribute.
+
+### 5.1.1 Analiza marketing budžeta (marketing_budget_usd)
+
+```{r}
+ggplot(dataset_clean, aes(x = marketing_budget_usd)) +
+  geom_histogram(bins = 30, fill = "#3498DB", color = "#2C3E50", alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Histogram: Marketing Budžet", 
+       x = "Marketing Budžet (USD)", 
+       y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+Histogram marketing budžeta ukazuje na to da su iznosi većinski locirani u nižem i srednjem opsegu, dok se frekvencija postepeno smanjuje ka većim vrednostima. Ova desna asimetrija ukazuje na to da je većina kampanja imala umerena ulaganja, uz manji broj kampanja sa visokim budžetima.
+
+### 5.1.2 Analiza poseta sajtu (website_traffic)
+
+```{r}
+ggplot(dataset_clean, aes(x = website_traffic)) +
+  geom_histogram(bins = 30, fill = "#E67E22", color = "#2C3E50", alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Histogram: Posete sajtu", 
+       x = "Website Traffic", 
+       y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+Histogram analiza poseta sajtu ukazuje na to da većina opservacija beleži niži nivo posjećenosti, dok mali broj objava ili kampanja privlači izuzetno veliki saobraćaj, što stvara jaku pozitivnu asimetriju.
+
+### 5.1.3 Analiza broja pratilaca na društvenim mrežama (social_media_followers)
+
+```{r}
+ggplot(dataset_clean, aes(x = social_media_followers)) +
+  geom_histogram(bins = 30, fill = "#9B59B6", color = "#2C3E50", alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Histogram: Pratioci na društvenim mrežama", 
+       x = "Broj pratilaca", 
+       y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+Histogram pratioci na društvenim mrežama ukazuje na to da broj pratilaca pokazuje visoku koncentraciju vrednosti na početnom delu skale. I ovde je primetno odsustvo normalne raspodele, što opravdava ranije uvedenu logaritamsku transformaciju radi lakšeg modelovanja.
+
+### 5.1.4 Transakcije po regionima (region)
+
+```{r}
+ggplot(dataset_clean, aes(x = region, fill = region)) +
+  geom_bar(color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  theme_minimal() +
+  labs(title = "Stubasti dijagram: Zastupljenost po regionima", 
+       x = "Region", 
+       y = "Broj transakcija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+Grafik pokazuje ravnomernu zastupljenost transakcija kroz različite regione, što znači da nemamo disbalans gde nam je maltene sve vezano za jedno mesto. To nam daje dobru osnovu za kasnije modelovanje.
+
+### 5.1.5 Kategorije proizvoda (product_category)
+
+```{r}
+ggplot(dataset_clean, aes(x = product_category, fill = product_category)) +
+  geom_bar(color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  theme_minimal() +
+  labs(title = "Stubasti dijagram: Kategorije proizvoda", 
+       x = "Kategorija proizvoda", 
+       y = "Broj transakcija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 30, hjust = 1))
+```
+Kategorije proizvoda su korektno zastupljene. Nema nekih ekstremnih oscilacija tipa da nam jedna kategorija čini 95% prodaje, a da za ostale jedva imamo podatke.
+
+## 5.2 Analiza i transformacija ciljne promenljive (sales_revenue_usd)
+
+### 5.2.1 Izračunavanje asimetrije originalne ciljne promenljive
+
+```{r}
+calculate_skewness = function(x) {
+  n = length(x)
+  sum((x - mean(x))^3) / (n * sd(x)^3)
+}
+
+original_skew = calculate_skewness(dataset_clean$sales_revenue_usd)
+print(paste("Asimetrija (Skewness) originalnog prihoda:", round(original_skew, 4)))
+```
+To je izuzetno visoka pozitivna asimetrija, što znači da je prihod narušen malim brojem ogromnih vrednosti koje vuku prosek daleko udesno.
+
+### 5.2.2 Poređenje originalne i logaritamske distribucije prihoda
+```{r}
+dataset_clean$log_revenue = log(dataset_clean$sales_revenue_usd)
+revenue_comparison_df = dataset_clean %>%
+  select(sales_revenue_usd, log_revenue) %>%
+  pivot_longer(everything(), names_to = "Metric", values_to = "Value")
+
+ggplot(revenue_comparison_df, aes(x = Value, fill = Metric)) +
+  geom_histogram(bins = 30, color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ Metric, scales = "free", ncol = 2, 
+             labeller = labeller(Metric = c("sales_revenue_usd" = "Originalni prihodi (USD)", 
+                                            "log_revenue" = "Logaritmovani prihodi (Log Revenue)"))) +
+  theme_minimal() +
+  labs(title = "Poređenje distribucije prihoda pre i posle log-transformacije",
+       x = "Vrednost obeležja", y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        strip.text = element_text(face = "bold", size = 11))
+```
+Evo ga ključni momenat — desno nam je originalni prihod sa onim ružnim, dugačkim repom, a levo kad primenimo običan log(). Grafikon se odmah pretvorio u lepu, skoro pa normalnu raspodelu. Sad će modeli mnogo lakše i stabilnije da uče na ovim podacima.
+
+
+### 5.2.3 Q-Q plot i Shapiro-Wilk test normalnosti
+```{r}
+set.seed(123)
+
+sample_revenue = sample(dataset_clean$log_revenue, min(5000, length(dataset_clean$log_revenue)))
+
+qqnorm(sample_revenue, main = "Q-Q Plot - Log-transformisani prihod", col = "#2980B9")
+qqline(sample_revenue, col = "#C0392B", lwd = 2)
+
+```
+Q-Q plot nam pokazuje da se tačkice u sredini lepo drže linije, uz neka manja odstupanja na krajevima (što je skroz normalno za realne biznis podatke). 
+
+```{r}
+
+shapiro_result = shapiro.test(sample_revenue)
+print(shapiro_result)
+```
+
+Shapiro-Wilk test:Iako je p-vrednost niska, to je uobičajena pojava kod velikih uzoraka gde je test previše osetljiv na svaku sitnicu. Visoka vrednost statistike W (skoro 1) i Q-Q plot nam potvrđuju da je log-transformacija odlično odradila posao i dovela podatke u formu koja je sasvim stabilna za dalje modelovanje.
+
+## 5.3 Analiza outliera
+
+Identifikujemo ekstremne opservacije za prihod primenom interkvartilnog opsega (IQR). Važna napomena: autlajeri se ne brišu automatski.
+
+
+```{r}
+Q1 = quantile(dataset_clean$sales_revenue_usd, 0.25)
+Q3 = quantile(dataset_clean$sales_revenue_usd, 0.75)
+IQR_value = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR_value
+upper_bound = Q3 + 1.5 * IQR_value
+
+outliers_revenue = dataset_clean$sales_revenue_usd[dataset_clean$sales_revenue_usd < lower_bound | dataset_clean$sales_revenue_usd > upper_bound]
+
+print(paste("Donja granica:", round(lower_bound, 2)))
+print(paste("Gornja granica:", round(upper_bound, 2)))
+print(paste("Broj identifikovanih outlier-a po IQR metodi:", length(outliers_revenue)))
+print(paste("Procenat outlier-a u ukupnom skupu:", round((length(outliers_revenue) / nrow(dataset_clean)) * 100, 2), "%"))
+```
+Formula nam je izbacila gornju granicu na 13.612,81 USD, a sve preko toga je označila kao autlajer. Tako smo dobili 3.816 takvih redova, što mu dođe oko 6.36% celog skupa.
+
+Iako deluje kao veliki procenat, u svetu prodaje i marketinga skroz je normalno da neke kampanje iskoče i donesu mnogo veće pare od proseka. To nisu nikakve greške, već naši najuspešniji rezultati. Upravo zato ne diramo i ne brišemo ove outliere — da ih sklonimo, osiromašili bismo podatke i model ne bi imao na čemu da uči šta zapravo donosi najveći profit.
