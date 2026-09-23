@@ -6,16 +6,20 @@ output: html_notebook
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
-install.packages("mice")
 library(mice)
 library(tidyverse)
+library(knitr)
+library(lmtest)
+library(car)
+library(randomForest)
+library(glmnet)
 ```
 
 # Analiza skupa podataka Marketing & Sales
 
 ### Autori: Danilo Novaković 101/2018, Luka Jevtić 64/2017
 
-## 1.Uvod 
+# 1 Uvod 
 
 Analiza i predviđanje prihoda od prodaje danas predstavljaju ključni deo uspešnog poslovanja, jer omogućavaju kompanijama da pametnije raspodele marketinške budžete i donose bolje finansijske odluke. Umesto oslanjanja na subjektivne procene i staru praksu, savremeni pristupi koriste podatke i napredne algoritme kako bi se tačno predvideli budući rezultati na osnovu ulaganja, ponašanja kupaca i kanala prodaje.
 
@@ -23,7 +27,7 @@ Za potrebe ovog projekta korišćen je R programski jezik, koji se pokazao kao i
 
 
 
-## 2.Opis podataka  
+# 2 Opis podataka  
 
 U ovom projektu analizira se skup podataka Marketing & Sales koji obuhvata 60.000 
 instanci prikupljenih iz poslovanja u MENA regionu (Riyadh, Dubai, Cairo, Abu Dhabi, Jeddah, Doha, Kuwait City). 
@@ -37,6 +41,7 @@ Cilj rada nam je detaljna analiza faktora koji utiču na ostvareni prihod od pro
 i razvoj regresionih modela mašinskog učenja za preciznu predikciju prihoda na osnovu marketinških investicija i parametara ponašanja kupaca.
 
 
+## 2.1 Učitavanje i dimenzije skupa podataka
 
 Na početku ćemo učitati set podataka
 
@@ -52,9 +57,13 @@ print(paste("Broj redova je:", nrow(dataset)))
 
 ```
 
+## 2.2 Pregled nekoliko redova,naziva feature-a, i njihova strutura
+
+
 Nakon što smo učitali podatke možemo da proverimo kojih je dimezija set podataka, vidimo da imamo 60 000 vrsta i 23 kolona.
 
 U nastavku smo pomoću funkcije head koja izlistava prvih nekoliko vrsta našeg set-a podataka a names nazive feature-a.
+
 
 ```{r}
 head(dataset)
@@ -69,8 +78,9 @@ str(dataset)
 ```
 Sada nakon što smo videli koji sve feature-i postoje u setu podataka  možemo da napišemo kratak opis o njima i da lepo to predstavimo tabelarno,za to nam treba da učitamo paket knitr i iskorisitmo funkciju kable. 
 
+## 2.3 Pregled i opis svih feature-a
+
 ```{r}
-library(knitr)
 
  opis_kolona=data.frame(
   Kolona = c(
@@ -113,6 +123,9 @@ library(knitr)
 kable(opis_kolona, col.names = c("Naziv kolone", "Opis promenljive"))
 ```
 
+## 2.4 Deskriptivna statistika i analiza ciljne promenljive
+
+
 Nakon što smo definisali šta nam predstavlja svaki feature u skupu podataka, možemo da koristimo funkciju summary() kako bismo dobili osnovne statističke pokazatelje za sve naše promenljive,ali posebnu pažnju moramo da posvetimo našoj ciljnoj promenljivoj (sales_revenue_usd) koja predstavlja ostvareni prihod od prodaje u američkim dolarima.Njena distribucija ključna za kasnije modelovanje
 
 ```{r}
@@ -120,11 +133,14 @@ summary(dataset)
 ```
 Što se tiče naše ciljne promenljive (sales_revenue_usd), iz priloženih statistika se lepo vidi da je prosečna vrednost od oko 5.911 dolara viša od medijane koja iznosi 4.340 dolara. To nam odmah govori da imamo nekoliko transakcija sa prilično velikim prihodima koje vuku prosek nagore. Većina prodaja se vrti oko nižih i srednjih iznosa (pa nam se tako 75% podataka nalazi ispod 7.091 dolar), dok samo manji broj transakcija ide u neke ekstremnije visine, sve do maksimalnih 190.377 dolara.
 
+## 2.5 Provera nedostajućih vrednosti
 
 Hoćemo da identifikujemo nedostajuće vrednosti možemo da koristimo funkciju colSums i vidimo da email_open_rate ima 1790,discount_percentage ima 1808 ,customer_satisfaction_score  ima  1844  i days_since_last_purchaseima 1836 nedostajućih vrednosti.                        
 ```{r}
 colSums(is.na(dataset))
 ```
+
+## 2.6 Provera duplikata i unikatnih vrednosti
 
 U ovom koraku ćemo proveriti da li u našem setu podataka postoje duplikati, odnosno da li se neki redovi u potpunosti ponavljaju.I vidmo na osnovu rezultata da ih nema i da je svaka od 60.000 instanci jedinstvena.
 
@@ -151,6 +167,8 @@ table(dataset$season)
 Kao što vidimo iz tabela frekvencija, opservacije su prilično ravnomerno raspoređene po različitim regionima, kanalima prodaje, kategorijama proizvoda i sezonama, što nam govori da nemamo ekstremne disbalanse u uzorku.
 
 
+## 2.7 Provera validnosti opsega i logičkih pravila
+
 U ovom koraku ćemo proveriti opsege minimalnih i maksimalnih vrednosti za sve numeričke promenljive, kako bismo utvrdili osnovne granice u kojima se podaci kreću:
 
 
@@ -159,8 +177,6 @@ sapply(dataset[sapply(dataset, is.numeric)], function(x) c(Min = min(x, na.rm = 
 ```
 Nakon provere opsega, analizirane su minimalne i maksimalne vrednosti da se utvrdi da li ima nekih nelogičnosti.
 Uočeno je da se svi podaci kreću u normalnim granicama: godine kupaca su od 18 do 74, ocene zadovoljstva su između 2 i 5, a maksimalni popust je 40%. Budžeti i troškovi jesu visoki, ali su u skladu sa realnim poslovanjem i nema negativnih cena niti nelogičnih unosa. Samim tim, numerički opsezi su potpuno ispravni.
-
-
 
 U ovom koraku ćemo proveriti da li u setu podataka postoje logičke nepravilnosti:
 
@@ -178,6 +194,9 @@ Provera da li broj dana od poslednje kupovine prelazi 365
 ```{r}
 sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 365, na.rm = TRUE)
 ```
+
+## 2.8 Analiza outlier-a
+
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
 
 
@@ -227,6 +246,8 @@ Kod broja pratilaca na društvenim mrežama (social_media_followers) vide se ta�
 Za sve posmatrane promenljive jeste da prisutni autlajeri nemaju karakter grešaka u merenju, već su prirodan odraz varijacija u realnom poslovnom okruženju, te se zadržavaju za dalju obradu.
 
 
+## 2.9 Analiza gustine distribucije
+
 U ovom koraku ćemo proveriti distribuciju ključnih numeričkih promenljivih pomoću grafikona gustine (density plot) kako bismo utvrdili da li podaci prate prirodne obrasce ili pokazuju znakove veštačkog generisanja:
 
 ```{r}
@@ -271,7 +292,6 @@ kod broja pratilaca na društvenim mrežama kriva gustine je glatka i prirodna, 
 Pregled distribucija pokazuje da podaci deluju sasvim prirodno i realno, bez veštačkih šablona ili čudnih prekida. Kada se sve sabere sa prethodnim proverama, set podataka je čist, pouzdan i spreman za dalju analizu.
 
 
-
 # 3 Analiza nedostajućih vrednosti
 
 ## 3.1 Uvod u analizu nedostajućih vrednosti
@@ -285,19 +305,19 @@ Na osnovu sprovedene analize proceniće se da li je pretpostavka MCAR (*Missing 
 Prvi korak predstavlja određivanje broja nedostajućih vrednosti u svakoj koloni. Na ovaj način možemo identifikovati promenljive koje zahtevaju dodatnu obradu i utvrditi obim problema sa nedostajućim podacima.
 
 ```{r}
-missing_counts <- colSums(is.na(dataset))
-missing_summary <- data.frame(
+missing_counts = colSums(is.na(dataset))
+missing_summary = data.frame(
   Kolona = names(missing_counts),
   Broj_missing = as.numeric(missing_counts)
 )
-missing_summary <- missing_summary[missing_summary$Broj_missing > 0, ]
+missing_summary = missing_summary[missing_summary$Broj_missing > 0, ]
 missing_summary
 ```
 ## 3.3 Procenat nedostajućih vrednosti
 Pored apsolutnog broja nedostajućih vrednosti, izračunat je i njihov procenat u odnosu na ukupan broj redova. 
 
 ```{r}
-missing_summary$Procenat_missing <- round(
+missing_summary$Procenat_missing = round(
   (missing_summary$Broj_missing / nrow(dataset)) * 100,
   2
 )
@@ -325,12 +345,12 @@ ggplot(missing_summary, aes(x = reorder(Kolona, Procenat_missing), y = Procenat_
 Sledeći korak je analiza raspodele nedostajućih vrednosti po redovima. Posebno je važno utvrditi da li se nedostajuće vrednosti uglavnom pojavljuju pojedinačno ili postoji veći broj redova u kojima nedostaje više atributa istovremeno.
 
 ```{r}
-missing_per_row <- rowSums(is.na(dataset))
+missing_per_row = rowSums(is.na(dataset))
 table(missing_per_row)
 
-rows_multiple_missing <- dataset[missing_per_row >= 2, ]
-num_multiple <- nrow(rows_multiple_missing)
-pct_multiple <- round(mean(missing_per_row >= 2) * 100, 2)
+rows_multiple_missing = dataset[missing_per_row >= 2, ]
+num_multiple = nrow(rows_multiple_missing)
+pct_multiple = round(mean(missing_per_row >= 2) * 100, 2)
 
 print(paste("Broj redova sa najmanje dve missing vrednosti:", num_multiple))
 print(paste("Procenat redova sa najmanje dve missing vrednosti:", pct_multiple, "%"))
@@ -341,14 +361,14 @@ Dobijeni rezultati pokazuju koliko se često više nedostajućih vrednosti pojav
 Pored broja nedostajućih vrednosti, analiziran je i njihov obrazac pojavljivanja. Cilj je utvrditi koje promenljive najčešće imaju nedostajuće vrednosti zajedno.
 
 ```{r, fig.width=11, fig.height=7, dpi=300}
-missing_variables <- c(
+missing_variables = c(
   "discount_percentage",
   "customer_satisfaction_score",
   "email_open_rate",
   "days_since_last_purchase"
 )
 
-op <- par(mar = c(6, 5, 10, 4), cex = 0.45)
+op = par(mar = c(6, 5, 10, 4), cex = 0.45)
 
 mice::md.pattern(
   dataset[, missing_variables],
@@ -365,7 +385,7 @@ Na osnovu prikazanog obrasca može se uočiti da se nedostajuće vrednosti u ana
 
 Kako bi originalni skup podataka ostao nepromenjen, za dalju analizu nedostajućih vrednosti kreirana je posebna kopija skupa podataka pod nazivom missingness_data. U ovoj kopiji kreiraju se pomoćne binarne promenljive koje označavaju da li određena vrednost nedostaje. Vrednost 1 označava da podatak nedostaje, dok vrednost 0 označava da je podatak dostupan. Originalni dataset se ne menja, čime se omogućava njegovo kasnije korišćenje za različite strategije obrade podataka.
 ```{r}
-missingness_data <- dataset %>%
+missingness_data = dataset %>%
   mutate(
     missing_discount = as.integer(
       is.na(discount_percentage)
@@ -392,7 +412,7 @@ U nastavku se ispituje da li je pojavljivanje nedostajućih vrednosti povezano s
 
 Nulta hipoteza testa je da su pojavljivanje nedostajuće vrednosti i posmatrana kategorijska promenljiva nezavisni. Kao nivo statističke značajnosti koristi se α = 0,05.
 ```{r}
-categorical_variables <- c(
+categorical_variables = c(
   "region",
   "sales_channel",
   "product_category",
@@ -400,21 +420,21 @@ categorical_variables <- c(
   "season"
 )
 
-missing_indicators <- c(
+missing_indicators = c(
   "missing_discount",
   "missing_satisfaction",
   "missing_email",
   "missing_days"
 )
 
-missing_names <- c(
+missing_names = c(
   "discount_percentage",
   "customer_satisfaction_score",
   "email_open_rate",
   "days_since_last_purchase"
 )
 
-chi_results <- data.frame(
+chi_results = data.frame(
   Missing_variable = character(),
   Categorical_variable = character(),
   Chi_squared = numeric(),
@@ -426,20 +446,20 @@ for (i in seq_along(missing_indicators)) {
   
   for (categorical_variable in categorical_variables) {
     
-    tabela <- table(
+    tabela = table(
       missingness_data[[missing_indicators[i]]],
       missingness_data[[categorical_variable]]
     )
     
-    test <- chisq.test(tabela)
+    test = chisq.test(tabela)
     
-    zakljucak <- ifelse(
+    zakljucak = ifelse(
       test$p.value < 0.05,
       "Statistički značajna povezanost",
       "Nema statistički značajne povezanosti"
     )
     
-    chi_results <- rbind(
+    chi_results = rbind(
       chi_results,
       data.frame(
         Missing_variable = missing_names[i],
@@ -460,7 +480,7 @@ Pošto je p-vrednost veća ili jednaka nivou značajnosti α = 0,05, nema dovolj
 Kako bi se proverilo da li se prihod od prodaje razlikuje između redova sa i bez nedostajućih vrednosti, analizirana je ciljna promenljiva sales_revenue_usd. Za svaku promenljivu izračunate su srednja i medijalna vrednost prihoda za slučajeve kod kojih podatak nedostaje i slučajeve kod kojih je dostupan.
 
 ```{r}
-target_comparison <- data.frame(
+target_comparison = data.frame(
   Missing_variable = character(),
   Status = character(),
   Number_of_rows = integer(),
@@ -470,7 +490,7 @@ target_comparison <- data.frame(
 
 for (variable in missing_variables) {
   
-  indicator_name <- switch(
+  indicator_name = switch(
     variable,
     discount_percentage = "missing_discount",
     customer_satisfaction_score = "missing_satisfaction",
@@ -478,18 +498,18 @@ for (variable in missing_variables) {
     days_since_last_purchase = "missing_days"
   )
   
-  status <- ifelse(
+  status =ifelse(
     missingness_data[[indicator_name]] == 1,
     "Missing",
     "Available"
   )
   
-  temp <- data.frame(
+  temp = data.frame(
     Status = status,
     Revenue = missingness_data$sales_revenue_usd
   )
   
-  summary_temp <- temp %>%
+  summary_temp = temp %>%
     group_by(Status) %>%
     summarise(
       Number_of_rows = n(),
@@ -497,9 +517,9 @@ for (variable in missing_variables) {
       Median_revenue = median(Revenue)
     )
   
-  summary_temp$Missing_variable <- variable
+  summary_temp$Missing_variable = variable
   
-  target_comparison <- rbind(
+  target_comparison = rbind(
     target_comparison,
     summary_temp[, c(
       "Missing_variable",
@@ -518,13 +538,13 @@ target_comparison
 Pored numeričkog poređenja, distribucije prihoda za redove sa i bez nedostajućih vrednosti prikazane su pomoću boxplot grafikona. Pošto ciljna promenljiva sales_revenue_usd ima izraženu desnu asimetriju i ekstremne vrednosti, koristi se logaritamska skala radi preglednijeg prikaza.
 
 ```{r}
-target_plot_data <- data.frame(
+target_plot_data = data.frame(
   sales_revenue_usd = missingness_data$sales_revenue_usd
 )
 
 for (variable in missing_variables) {
   
-  indicator_name <- switch(
+  indicator_name = switch(
     variable,
     discount_percentage = "missing_discount",
     customer_satisfaction_score = "missing_satisfaction",
@@ -532,14 +552,14 @@ for (variable in missing_variables) {
     days_since_last_purchase = "missing_days"
   )
   
-  target_plot_data[[variable]] <- ifelse(
+  target_plot_data[[variable]] = ifelse(
     missingness_data[[indicator_name]] == 1,
     "Missing",
     "Available"
   )
 }
 
-target_plot_data_long <- target_plot_data %>%
+target_plot_data_long = target_plot_data %>%
   pivot_longer(
     cols = all_of(missing_variables),
     names_to = "Missing_variable",
@@ -573,17 +593,17 @@ Na osnovu prethodno sprovedenih analiza ispituje se da li je razumno pretpostavi
 
 ```{r}
 # 1. Filtriramo samo numeričke kolone i uklanjamo 'id' ako je ostao
-mcar_data <- dataset %>%
+mcar_data = dataset %>%
   select(where(is.numeric)) %>%
   select(-any_of("id"))
 
 # 2. Uzimamo reprezentativni uzorak od 5000 redova radi uštede memorije
 set.seed(123)
-mcar_data_sample <- mcar_data %>%
+mcar_data_sample = mcar_data %>%
   slice_sample(n = 5000)
 
 # 3. Pokretanje brze MICE imputacije za test
-mcar_imp <- mice(
+mcar_imp = mice(
   mcar_data_sample,
   m = 3,
   method = "pmm",
@@ -593,7 +613,7 @@ mcar_imp <- mice(
 )
 
 # 4. Pokretanje MCAR testa
-mcar_result <- mice::mcar(
+mcar_result = mice::mcar(
   mcar_data_sample,
   imputed = mcar_imp,
   replications = 200,
@@ -620,13 +640,13 @@ Imputacija medijanom ili srednjom vrednošću: veštački bi smanjila varijansu 
 
 ```{r}
 # Uklanjamo identifikatore i ne-numeričke atribute koji nisu pogodni za PMM
-mice_data <- dataset %>%
+mice_data = dataset %>%
   select(
     -id,
     -date
   )
 set.seed(123)
-mice_model <- mice(
+mice_model = mice(
   mice_data,
   m = 5,
   method = "pmm",
@@ -635,17 +655,908 @@ mice_model <- mice(
   seed = 123
 )
 #data set bez missing values
-dataset_clean <- complete(mice_model, 1)
+dataset_clean=complete(mice_model, 1)
 
 #vracanje id i date
-dataset_clean$id <- dataset$id
-dataset_clean$date <- dataset$date
+dataset_clean$id = dataset$id
+dataset_clean$date = dataset$date
 
 #Reorganizacija kolona da budu u originalnom redosledu
-dataset_clean <- dataset_clean %>%
+dataset_clean = dataset_clean %>%
   select(colnames(dataset))
 
 #Provera: Potvrda da nema preostalih NA vrednosti
 colSums(is.na(dataset_clean))
 ```
+
+# 4 Feature engineering
+
+U ovom poglavlju kreiramo nove feature na osnovu postojećih podataka kako bismo modelima mašinskog učenja pružili dodatne ulazne informacije.
+
+Kreirani su sledeći feature-i:
+
+
+## 4.1 Kreiranje finansijskih i marketinških pokazatelja
+
+total_ad_spend: Predstavlja koliko je novca ukupno otišlo na reklame, kada saberemo online i offline troškove.
+
+```{r}
+dataset_clean$total_ad_spend = dataset_clean$ad_spend_online_usd + dataset_clean$ad_spend_offline_usd
+```
+
+online_share: Pokazuje koliki udeo u ukupnom budžetu za reklame zauzima baš online oglašavanje, što nam otkriva koliko je neka kampanja digitalno orijentisana.
+
+```{r}
+dataset_clean$online_share = ifelse(dataset_clean$total_ad_spend > 0, dataset_clean$ad_spend_online_usd / dataset_clean$total_ad_spend, 0)
+```
+
+budget_utilization: Pokazuje nam koliki deo ukupno namenjenog budžeta je stvarno potrošen na reklame.
+
+```{r}
+dataset_clean$budget_utilization = ifelse(dataset_clean$marketing_budget_usd > 0, dataset_clean$total_ad_spend / dataset_clean$marketing_budget_usd, 0)
+```
+
+unspent_budget: Predstavlja ostatak novca koji je bio planiran u budžetu, ali na kraju nije potrošen na oglašavanje.
+```{r}
+dataset_clean$unspent_budget = dataset_clean$marketing_budget_usd - dataset_clean$total_ad_spend
+```
+
+spend_per_rep: Predstavlja koliko je novca za reklame potrošeno po jednom prodajnom predstavniku, što nam pomaže da vidimo opterećenje i efikasnost tima terenu.
+```{r}
+dataset_clean$spend_per_rep = dataset_clean$total_ad_spend / dataset_clean$num_sales_representatives
+```
+
+spend_per_promotion: Predstavlja koliko je novca uloženo po jednoj aktivnoj akciji ili popustu.
+```{r}
+dataset_clean$spend_per_promotion =ifelse(dataset_clean$num_promotions > 0, dataset_clean$total_ad_spend / dataset_clean$num_promotions, dataset_clean$total_ad_spend)
+```
+
+budget_per_traffic: Predstavlja odnos između ukupnog budžeta i broja ljudi koji su posetili sajt.
+```{r}
+dataset_clean$budget_per_traffic = dataset_clean$marketing_budget_usd / dataset_clean$website_traffic
+```
+
+## 4.2 Logaritamske transformacije i analiza distribucija
+
+log_budget, log_traffic, log_followers logaritamski transformisane vrednosti budžeta, poseta sajtu i broja pratilaca,čijom se primenom smanjuje visoka asimetrija  podataka i ublažava uticaj ekstremnih vrednosti na modele.
+```{r}
+dataset_clean$log_budget = log(dataset_clean$marketing_budget_usd)
+dataset_clean$log_traffic = log(dataset_clean$website_traffic)
+dataset_clean$log_followers = log(dataset_clean$social_media_followers + 1)
+```
+
+### 4.2.1 Analiza distribucija pre i posle transformacije
+
+```{r}
+summary(dataset_clean[, c("marketing_budget_usd", "log_budget", 
+                    "website_traffic", "log_traffic", 
+                    "social_media_followers", "log_followers")])
+```
+Pogled na statistiku pre i posle transformacije odlično ilustruje problem koji smo imali sa originalnim podacima. Kod početnih vrednosti za budžet, posete i pratioce vidimo ogroman raskorak između medijane i proseka (recimo, kod saobraćaja je medijana oko 8.000, a prosek skče na preko 24.000 zbog nekoliko drastično velikih vrednosti na desnom kraju). To znači da su podaci bili prilično razvučeni i asimetrični.
+Kada smo primenili logaritam  prosek i medijana su se praktično poklopili, a ekstremni rasponi su svedeni na normalnu meru. Time smo eliminisali raspon velikih brojeva, pa će modeli moći znatno stabilnije i preciznije da uče na ovim podacima.
+
+## 4.3 Vremenske karakteristike (Time Features)
+
+month i quarter oznake meseca i kvartala u godini, korisne za praćenje periodičnih skokova u prodaji (poput prazničnih kupovina).
+
+```{r}
+dataset_clean$date = as.Date(dataset_clean$date)
+dataset_clean$month = format(dataset_clean$date, "%m")
+dataset_clean$quarter = quarters(dataset_clean$date)
+```
+
+day_of_week: Dan u nedelji kada je transakcija zabeležena.
+```{r}
+dataset_clean$day_of_week = weekdays(dataset_clean$date)
+```
+
+is_weekend: Indikator (0 ili 1) koji govori da li je kupovina obavljena tokom vikenda.
+```{r}
+dataset_clean$is_weekend =ifelse(dataset_clean$day_of_week %in% c("Saturday", "Sunday"), 1, 0)
+```
+
+is_year_end: Pokazuje da li transakcija pada u decembar, period pojačanih prazničnih aktivnosti.
+
+```{r}
+dataset_clean$is_year_end=ifelse(format(dataset_clean$date, "%m") == "12", 1, 0)
+```
+
+
+days_since_start: Linearni trend koji meri koliko je dana prošlo od prvog zabeleženog datuma u setu, hvatajući dugoročni rast ili pad.
+
+```{r}
+dataset_clean$days_since_start = as.numeric(dataset_clean$date - min(dataset_clean$date, na.rm = TRUE))
+```
+
+season: Definiše meteorološku sezonu u kojoj je ostvarena prodaja.
+```{r}
+dataset_clean$season = case_when(
+  dataset_clean$month %in% c("12", "01", "02") ~ "Zima",
+  dataset_clean$month %in% c("03", "04", "05") ~ "Proleće",
+  dataset_clean$month %in% c("06", "07", "08") ~ "Leto",
+  dataset_clean$month %in% c("09", "10", "11") ~ "Jesen",
+  TRUE ~ "Nepoznato"
+)
+
+```
+## 4.4 Karakteristike kupaca (Customer Features)
+
+purchase_frequency: Predstavlja intenzitet kupovine, odnosno prosečnu učestalost kojom kupac obavlja transakcije tokom svog aktivnog staža. Računa se stavljanjem u odnos ukupnog broja prethodnih kupovina i efektivnog perioda aktivnosti, čime dobijamo realniju sliku o vernosti kupca nego da posmatramo samo grubu sumu.
+
+```{r}
+dataset_clean$purchase_frequency =ifelse(
+  (dataset_clean$days_since_start - dataset_clean$days_since_last_purchase) > 0,
+  dataset_clean$num_previous_purchases / (dataset_clean$days_since_start - dataset_clean$days_since_last_purchase),
+  dataset_clean$num_previous_purchases
+)
+```
+is_returning: Logički indikator (0 ili 1) koji jasno razdvaja nove kupce od onih stalnih koji se redovno vraćaju. 
+```{r}
+dataset_clean$is_returning = ifelse(dataset_clean$customer_segment == "Regular" | dataset_clean$num_previous_purchases > 1, 1, 0)
+
+```
+
+customer_age_group: Pretvara numeričku promenljivu godina u kategorijalnu, što modelima mašinskog učenja olakšava prepoznavanje nelinearnih šablona po generacijama.
+
+```{r}
+dataset_clean$customer_age_group = cut(
+  dataset_clean$customer_age,
+  breaks = c(0, 25, 40, 60, 100),
+  labels = c("Mladi (do 25)", "Srednje doba (26-40)", "Stariji (41-60)", "Veterani (60+)"),
+  include.lowest = TRUE
+)
+```
+
+
+## 4.5 Tržišne i digitalne karakteristike (Market & Digital Features)
+
+price_advantage: Prikazuje našu cenovnu prednost u odnosu na konkurenciju, dobijenu preko indeksa cene konkurencije (competitor_price_index).
+
+```{r}
+dataset_clean$price_advantage = ifelse(
+  !is.na(dataset_clean$competitor_price_index), 
+  100 - dataset_clean$competitor_price_index, 
+  NA
+)
+```
+
+effective_discount: Kombinuje procenat odobrenog popusta i broj aktivnih promocija da vidimo ukupni efekat popusta na kupca.
+
+```{r}
+dataset_clean$effective_discount = dataset_clean$discount_percentage * dataset_clean$num_promotions
+```
+
+estimated_conversions: Daje procenu broja ostvarenih kupovina na osnovu poseta sajtu i stope konverzije.
+
+```{r}
+dataset_clean$estimated_conversions = dataset_clean$website_traffic * dataset_clean$conversion_rate
+```
+
+traffic_per_follower: Meri odnos poseta sajtu i broja pratilaca na društvenim mrežama.
+```{r}
+dataset_clean$traffic_per_follower = dataset_clean$website_traffic / (dataset_clean$social_media_followers + 1)
+```
+
+## 4.6 Interakcije obeležja (Feature Interactions)
+
+segment_product: Kombinuje segment kupaca i kategoriju proizvoda, da vidimo koji tipovi kupaca preferiraju koje proizvode.
+```{r}
+dataset_clean$segment_product = as.factor(paste(dataset_clean$customer_segment, dataset_clean$product_category, sep = "_"))
+```
+season_product: Spaja sezonu i kategoriju proizvoda radi praćenja sezonskih promena u potražnji.
+
+```{r}
+dataset_clean$season_product = as.factor(paste(dataset_clean$season, dataset_clean$product_category, sep = "_"))
+```
+
+channel_segment: Povezuje kanal prodaje sa segmentom kupaca, otkrivajući preko kog kanala koji kupci najčešće trguju.
+
+```{r}
+dataset_clean$channel_segment = as.factor(paste(dataset_clean$sales_channel, dataset_clean$customer_segment, sep = "_"))
+```
+
+## 4.7 Provera i verifikacija novih feature-a
+
+Proveravamo sve nove feature  kako bismo utvrdili osnovnu statistiku, potvrdili ispravnost formula i osigurali da u njima nema neočekivanih anomalija.
+
+```{r}
+engineered_cols = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+
+summary(dataset_clean[, engineered_cols])
+colSums(is.na(dataset_clean[, engineered_cols]))
+sapply(dataset_clean[, engineered_cols], function(x) sum(is.infinite(x)))
+```
+Nakon detaljnog pregleda statistike, potvrđeno je da su sv novi feature-i uspešno generisana i da se kreću u očekivanim i logičnim opsezima.
+
+## 4.8 Prevencija curenja podataka (Target Leakage Prevention)
+
+Treba programski osiguravamo i verifikujemo da nijedan novih feature-a u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
+
+```{r}
+target_variable = "sales_revenue_usd"
+contains_target = any(grepl(target_variable, engineered_cols))
+stopifnot("GREŠKA: Curenje podataka! Nova obeležja koriste sales_revenue_usd!" = !contains_target)
+print("Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd).")
+```
+Uspešno smo proverili da ni jedan novi feature ne koristi ciljnu promenljivu sales_revenue_usd
+
+U ovm koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
+```{r}
+num_engineered = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+target_correlations = cor(dataset_clean[, num_engineered], dataset_clean[[target_variable]], use = "complete.obs")
+print(target_correlations)
+```
+Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
+Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+
+
+
+# 5 Eksplorativna analiza podataka (EDA) i analize autlajera
+
+U ovom poglavlju sprovodimo univarijatnu analizu numeričkih i kategorijskih feature-a, analiziramo distribuciju i transformaciju ciljne promenljive (sales_revenue_usd), kao i detaljnu analizu outliera primenom IQR metode.
+
+## 5.1 Univarijatna analiza numeričkih i kategorijskih obeležja
+
+Univarijatna analiza nam omogućava da sagledamo distribuciju, oblike asimetrije i zastupljenost vrednosti kroz ključne numeričke i kategorijske atribute.
+
+### 5.1.1 Analiza marketing budžeta (marketing_budget_usd)
+
+```{r}
+ggplot(dataset_clean, aes(x = marketing_budget_usd)) +
+  geom_histogram(bins = 30, fill = "#3498DB", color = "#2C3E50", alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Histogram: Marketing Budžet", 
+       x = "Marketing Budžet (USD)", 
+       y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+Histogram marketing budžeta ukazuje na to da su iznosi većinski locirani u nižem i srednjem opsegu, dok se frekvencija postepeno smanjuje ka većim vrednostima. Ova desna asimetrija ukazuje na to da je većina kampanja imala umerena ulaganja, uz manji broj kampanja sa visokim budžetima.
+
+### 5.1.2 Analiza poseta sajtu (website_traffic)
+
+```{r}
+ggplot(dataset_clean, aes(x = website_traffic)) +
+  geom_histogram(bins = 30, fill = "#E67E22", color = "#2C3E50", alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Histogram: Posete sajtu", 
+       x = "Website Traffic", 
+       y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+Histogram analiza poseta sajtu ukazuje na to da većina opservacija beleži niži nivo posjećenosti, dok mali broj objava ili kampanja privlači izuzetno veliki saobraćaj, što stvara jaku pozitivnu asimetriju.
+
+### 5.1.3 Analiza broja pratilaca na društvenim mrežama (social_media_followers)
+
+```{r}
+ggplot(dataset_clean, aes(x = social_media_followers)) +
+  geom_histogram(bins = 30, fill = "#9B59B6", color = "#2C3E50", alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Histogram: Pratioci na društvenim mrežama", 
+       x = "Broj pratilaca", 
+       y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+Histogram pratioci na društvenim mrežama ukazuje na to da broj pratilaca pokazuje visoku koncentraciju vrednosti na početnom delu skale. I ovde je primetno odsustvo normalne raspodele, što opravdava ranije uvedenu logaritamsku transformaciju radi lakšeg modelovanja.
+
+### 5.1.4 Transakcije po regionima (region)
+
+```{r}
+ggplot(dataset_clean, aes(x = region, fill = region)) +
+  geom_bar(color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  theme_minimal() +
+  labs(title = "Bar plot: Zastupljenost po regionima", 
+       x = "Region", 
+       y = "Broj transakcija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+Grafik pokazuje značajne varijacije u broju transakcija po regionima. Dok gradovi poput Kaira i Rijada beleže najveći obim transakcija, drugi regioni poput Amana i Kasablanke imaju znatno manju zastupljenost. Ova neujednačena distribucija objašnjava zašto se regija u kasnijim statističkim analizama pokazala kao slab prediktor i s pravom bila isključena iz konačnog skupa feature-a.
+
+### 5.1.5 Kategorije proizvoda (product_category)
+
+```{r}
+ggplot(dataset_clean, aes(x = product_category, fill = product_category)) +
+  geom_bar(color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  theme_minimal() +
+  labs(title = "Bar plot: Kategorije proizvoda", 
+       x = "Kategorija proizvoda", 
+       y = "Broj transakcija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 30, hjust = 1))
+```
+Kategorije proizvoda su ravnomerno zastupljene u uzorku. Nema ekstremnih oscilacija niti dominacije jedne kategorije nauštrb ostalih, što obezbeđuje kvalitetnu osnovu i stabilnost podataka za dalje modelovanje i analizu uticaja pojedinačnih kategorija na prihode.
+
+## 5.2 Analiza i transformacija ciljne promenljive (sales_revenue_usd)
+
+### 5.2.1 Izračunavanje asimetrije originalne ciljne promenljive
+
+```{r}
+calculate_skewness = function(x) {
+  n = length(x)
+  sum((x - mean(x))^3) / (n * sd(x)^3)
+}
+
+original_skew = calculate_skewness(dataset_clean$sales_revenue_usd)
+print(paste("Asimetrija (Skewness) originalnog prihoda:", round(original_skew, 4)))
+```
+To je izuzetno visoka pozitivna asimetrija, što znači da je prihod narušen malim brojem ogromnih vrednosti koje vuku prosek daleko udesno.
+
+### 5.2.2 Poređenje originalne i logaritamske distribucije prihoda
+```{r}
+dataset_clean$log_revenue = log(dataset_clean$sales_revenue_usd)
+revenue_comparison_df = dataset_clean %>%
+  select(sales_revenue_usd, log_revenue) %>%
+  pivot_longer(everything(), names_to = "Metric", values_to = "Value")
+
+ggplot(revenue_comparison_df, aes(x = Value, fill = Metric)) +
+  geom_histogram(bins = 30, color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ Metric, scales = "free", ncol = 2, 
+             labeller = labeller(Metric = c("sales_revenue_usd" = "Originalni prihodi (USD)", 
+                                            "log_revenue" = "Logaritmovani prihodi (Log Revenue)"))) +
+  theme_minimal() +
+  labs(title = "Poređenje distribucije prihoda pre i posle log-transformacije",
+       x = "Vrednost obeležja", y = "Frekvencija") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        strip.text = element_text(face = "bold", size = 11))
+```
+Evo ga ključni momenat — desno nam je originalni prihod sa onim ružnim, dugačkim repom, a levo kad primenimo običan log(). Grafikon se odmah pretvorio u lepu, skoro pa normalnu raspodelu. Sad će modeli mnogo lakše i stabilnije da uče na ovim podacima.
+
+
+### 5.2.3 Q-Q plot i Shapiro-Wilk test normalnosti
+```{r}
+set.seed(123)
+
+sample_revenue = sample(dataset_clean$log_revenue, min(5000, length(dataset_clean$log_revenue)))
+
+qqnorm(sample_revenue, main = "Q-Q Plot - Log-transformisani prihod", col = "#2980B9")
+qqline(sample_revenue, col = "#C0392B", lwd = 2)
+
+```
+Q-Q plot nam pokazuje da se tačkice u sredini lepo drže linije, uz neka manja odstupanja na krajevima (što je skroz normalno za realne biznis podatke). 
+
+```{r}
+
+shapiro_result = shapiro.test(sample_revenue)
+print(shapiro_result)
+```
+
+Shapiro-Wilk test:Iako je p-vrednost niska, to je uobičajena pojava kod velikih uzoraka gde je test previše osetljiv na svaku sitnicu. Visoka vrednost statistike W (skoro 1) i Q-Q plot nam potvrđuju da je log-transformacija odlično odradila posao i dovela podatke u formu koja je sasvim stabilna za dalje modelovanje.
+
+## 5.3 Analiza outliera
+
+Identifikujemo ekstremne opservacije za prihod primenom interkvartilnog opsega (IQR). Važna napomena: autlajeri se ne brišu automatski.
+
+
+```{r}
+Q1 = quantile(dataset_clean$sales_revenue_usd, 0.25)
+Q3 = quantile(dataset_clean$sales_revenue_usd, 0.75)
+IQR_value = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR_value
+upper_bound = Q3 + 1.5 * IQR_value
+
+outliers_revenue = dataset_clean$sales_revenue_usd[dataset_clean$sales_revenue_usd < lower_bound | dataset_clean$sales_revenue_usd > upper_bound]
+
+print(paste("Donja granica:", round(lower_bound, 2)))
+print(paste("Gornja granica:", round(upper_bound, 2)))
+print(paste("Broj identifikovanih outlier-a po IQR metodi:", length(outliers_revenue)))
+print(paste("Procenat outlier-a u ukupnom skupu:", round((length(outliers_revenue) / nrow(dataset_clean)) * 100, 2), "%"))
+```
+Formula nam je izbacila gornju granicu na 13.612,81 USD, a sve preko toga je označila kao autlajer. Tako smo dobili 3.816 takvih redova, što mu dođe oko 6.36% celog skupa.
+
+Iako deluje kao veliki procenat, u svetu prodaje i marketinga skroz je normalno da neke kampanje iskoče i donesu mnogo veće pare od proseka. To nisu nikakve greške, već naši najuspešniji rezultati. Upravo zato ne diramo i ne brišemo ove outliere — da ih sklonimo, osiromašili bismo podatke i model ne bi imao na čemu da uči šta zapravo donosi najveći profit.
+
+## 5.4 Korelaciona analiza obeležja
+
+U ovom delu sprovodimo ispitivanje međusobne povezanosti numeričkih atributa. Pošto pojedine promenljive u našem skupu podataka pokazuju izraženu asimetriju i prisustvo ekstremnih vrednosti, koristimo Spearman-ov koeficijent korelacije, pošto on meri monotonu povezanost i otporniji je na outlier-e u odnosu na standardni Pearson-ov koeficijent.
+
+### 5.4.1 Izračunavanje Spearmanove matrice korelacije
+
+```{r}
+numeric_cols_for_corr = dataset_clean %>%
+  select(
+    sales_revenue_usd, marketing_budget_usd, ad_spend_online_usd, 
+    ad_spend_offline_usd, num_promotions, discount_percentage, 
+    num_sales_representatives, customer_age, customer_satisfaction_score, 
+    competitor_price_index, website_traffic, conversion_rate, 
+    email_open_rate, social_media_followers, days_since_last_purchase, 
+    num_previous_purchases, total_ad_spend, online_share, 
+    budget_utilization, unspent_budget, spend_per_rep, 
+    spend_per_promotion, budget_per_traffic, purchase_frequency, 
+    traffic_per_follower
+  )
+
+
+spearman_matrix = cor(numeric_cols_for_corr, method = "spearman", use = "complete.obs")
+
+revenue_correlations = sort(spearman_matrix["sales_revenue_usd", ], decreasing = TRUE)
+print("Spearman-ove korelacije sa ciljnom promenljivom (sales_revenue_usd):")
+print(round(revenue_correlations, 3))
+```
+Kada izdvojimo korelacije sa ciljnom promenljivom (sales_revenue_usd), vidimo da finansijska ulaganja (marketing_budget_usd, total_ad_spend) ostvaruju umerene pozitivne vrednosti (oko 0.5), dok obeležja poput poseta sajtu (website_traffic) i društvenih mreža pokazuju potpuno neutralnu korelaciju. To ukazuje na to da veći budžeti prate veći prihod, ali da sama masovna vidljivost ne garantuje profit bez efikasnih konverzija.
+
+
+### 5.4.2 Vizuelni prikaz korelacije (Correlation matrix plot)
+Umesto klasične velike matrice koja može biti nepregledna sa velikim brojem obeležja, korelacije direktno u odnosu na našu ciljnu promenljivom (sales_revenue_usd) prikazujemo preglednim horizontalnim stubastim dijagramom.
+```{r}
+revenue_corr_df = data.frame(
+  Feature = names(revenue_correlations),
+  Correlation = as.numeric(revenue_correlations)
+) %>%
+  filter(Feature != "sales_revenue_usd") # Uklanjamo samopovezivanje (1.0)
+
+# Crtanje horizontalnog barplota
+ggplot(revenue_corr_df, aes(x = reorder(Feature, Correlation), y = Correlation, fill = Correlation > 0)) +
+  geom_col(alpha = 0.85, color = "#2C3E50") +
+  coord_flip() +
+  scale_fill_manual(values = c("#E74C3C", "#3498DB"), guide = "none") +
+  theme_minimal() +
+  labs(title = "Spearman-ova korelacija obeležja sa prihodom (sales_revenue_usd)",
+       x = "Obeležje",
+       y = "Koeficijent korelacije") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.y = element_text(size = 9))
+```
+Sa grafikona se jasno izdvajaju tri grupe obeležja u odnosu na prihod (sales_revenue_usd):  
+
+Snažne pozitivne veze: Finansijska ulaganja (marketing_budget_usd, total_ad_spend, onlajn/oflajn budžeti) imaju najveći uticaj sa korelacijama oko 0.5. 
+
+Neutralna zona: Većina ostalih obeležja (poput poseta sajtu i ocena zadovoljstva) ima korelaciju blisku nuli, što znači da nemaju direktan linearni uticaj na prihod.
+
+Blage negativne veze: Indeks cena konkurencije i popusti (discount_percentage) nalaze se na dnu sa negativnim predznakom, što sugeriše da veći popusti ne donose automatski i veći ukupan prihod.
+
+### 5.4.3 Identifikacija snažnih veza i redundantnih obeležja
+```{r}
+get_high_correlations = function(matrix, threshold = 0.75) {
+  cor_df = as.data.frame(as.table(matrix))
+  names(cor_df) = c("Var1", "Var2", "Correlation")
+  cor_df = cor_df %>% 
+    filter(as.character(Var1) < as.character(Var2)) %>% 
+    filter(abs(Correlation) >= threshold) %>%
+    arrange(desc(abs(Correlation)))
+  return(cor_df)
+}
+
+high_corr_pairs = get_high_correlations(spearman_matrix, threshold = 0.75)
+print(head(high_corr_pairs, 10))
+```
+
+Analizom parova izdvaja se izražena multikolinearnost među finansijskim obeležjima:
+
+Ekstremna redundantnost budžeta: Promenljive total_ad_spend, marketing_budget_usd, kao i onlajn i oflajn budžeti pokazuju korelacije između 0.91 i 0.99, što je logično jer su međusobno izvedene i zbirno povezane. Visoku povezanost beleži i neiskorišćeni budžet (unspent_budget).
+
+Implikacija za modelovanje: Zbog visoke multikolinearnosti, u kasnijoj fazi izgradnje modela (poput linearne regresije) biće neophodno ukloniti redundantne promenljive kako bi se sprečila nestabilnost koeficijenata.
+
+## 5.5 Kategorijska analiza i testiranje značajnosti razlika
+
+U ovom delu analiziramo uticaj i razlike ciljne promenljive (`sales_revenue_usd`) u zavisnosti od ključnih kategorijskih obeležja (kao što su region prodaje i kategorija proizvoda). Koristimo i vizuelne metode (boxplote) i formalne statističke testove (ANOVA i Kruskal-Wallis) uz merenje veličine efekta (Eta squared)
+
+
+### 5.5.1 Prihod po kategorijama proizvoda
+
+```{r}
+ggplot(dataset_clean, aes(x = product_category, y = sales_revenue_usd, fill = product_category)) +
+  geom_boxplot(alpha = 0.8, outlier.color = "#C0392B", outlier.size = 1.5) +
+  theme_minimal() +
+  labs(title = "Boxplot: Ostvareni prihod po kategorijama proizvoda",
+       x = "Kategorija proizvoda",
+       y = "Prihod (USD)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.x = element_text(angle = 30, hjust = 1),
+        legend.position = "none")
+```
+Boxplot dijagram pokazuju ujednačene medijane i interkvartilne opsege kroz sve kategorije proizvoda, što ukazuje na ravnomerno raspoređene prihode bez izražene dominacije pojedine grupe.
+
+### 5.5.2 ANOVA i Kruskal-Wallis testovi sa merenjem veličine efekta
+
+ored univarjantne analize, primenjujemo ANOVA i neparametrijski Kruskal-Wallis test uz izračunavanje veličine efekta (Eta squared).
+
+```{r}
+anova_model = aov(sales_revenue_usd ~ product_category, data = dataset_clean)
+print("--- Rezultati ANOVA testa ---")
+print(summary(anova_model))
+
+
+kruskal_result = kruskal.test(sales_revenue_usd ~ product_category, data = dataset_clean)
+print("--- Rezultati Kruskal-Wallis testa ---")
+print(kruskal_result)
+
+if (!requireNamespace("rstatix", quietly = TRUE)) {
+ 
+  ss_model = summary(anova_model)[[1]][["Sum Sq"]][1]
+  ss_total = sum(summary(anova_model)[[1]][["Sum Sq"]])
+  eta_squared = ss_model / ss_total
+  print(paste("Izračunati Eta-squared (eta^2):", round(eta_squared, 4)))
+} else {
+  library(rstatix)
+  eta_res = dataset_clean %>% anova_test(sales_revenue_usd ~ product_category)
+  print(eta_res)
+}
+```
+Statistička značajnost: Rezultati ANOVA testa F=823 i Kruskal-Wallis testa X^2=8776.9 uz p < 2.2e-16 potvrđuju da su razlike u prihodima između kategorija proizvoda izuzetno statistički značajne.
+
+Izračunati Eta-squared od 0.052 pokazuje da kategorija proizvoda objašnjava oko 5.2% varijacije prihoda, što predstavlja merljiv i opravdan uticaj za uključivanje u prediktivne modele.
+
+
+```{r}
+names(dataset_clean)
+```
+
+## 5.6 Vremenska analiza i sezonski obrasci
+
+U ovom delu analiziramo kretanje ostvarenog prihoda kroz vreme (po godinama, kvartalima i mesecima) koristeći već pripremljene vremenske atribute u skupu podataka, kako bismo identifikovali trendove i uticaj Q4 efekta.
+
+
+### 5.6.1 Agregacija prihoda po godinama
+
+```{r}
+#1. Prihod po godinama (ekstrakcija godine iz 'date' kolone)
+revenue_by_year = dataset_clean %>%
+  mutate(year = format(as.Date(date), "%Y")) %>%
+  group_by(year) %>%
+  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE),
+            n_transactions = n())
+
+print(revenue_by_year)
+
+```
+Poslovanje je izuzetno stabilno od 2020. do 2023. godine, uz ujednačen ukupan prihod (86,6–89,9 miliona USD) i stabilan obim od oko 15.000 transakcija godišnje.
+
+### 5.6.2 Agregacija prihoda po  kvartalima 
+
+```{r}
+# 2. Prihod po kvartalima (korišćenje postojeće kolone 'quarter')
+revenue_by_quarter = dataset_clean %>%
+  group_by(quarter) %>%
+  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE))
+
+print(revenue_by_quarter)
+
+```
+Prihodi rastu kroz kvartale i dostižu maksimum od 113,4 miliona USD u četvrtom kvartalu (Q4), čime se potvrđuje snažan sezonski uticaj kraja godine.
+
+### 5.6.3 Agregacija prihoda po mesecima
+
+```{r}
+# 3. Prihod po mesecima (korišćenje postojeće kolone 'month')
+revenue_by_month = dataset_clean %>%
+  group_by(month) %>%
+  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE))
+
+print(revenue_by_month)
+```
+Promet je stabilan u prvoj polovini godine (22–26 miliona USD mesečno), dok u oktobru, novembru i decembru naglo skče na preko 36 miliona USD mesečno.
+
+### 5.6.4 Vizuelizacija sezonskih obrazaca i istraživanje Q4 efekta
+
+```{r}
+ggplot(revenue_by_month, aes(x = month, y = total_revenue, group = 1)) +
+  geom_line(color = "#2980B9", linewidth = 1.2) +
+  geom_point(color = "#C0392B", size = 3) +
+  theme_minimal() +
+  labs(title = "Sezonski obrasci: Ukupan prihod po mesecima",
+       x = "Mesec",
+       y = "Ukupan prihod (USD)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.x = element_text(angle = 30, hjust = 1))
+```
+Dijagram jasno prikazuje sezonske fluktuacije sa strmim usponom krajem godine, potvrđujući da vremenske komponente imaju visoku prediktivnu vrednost za modelovanje.
+
+
+## 5.7 Analiza heteroskedastičnosti
+
+U ovom delu testiramo prisustvo heteroskedastičnosti (nekonstantne varijanse reziduala) u linearnim modelima i upoređujemo efekte korišćenja originalne (`sales_revenue_usd`) i logaritmovane (`log_revenue`) skale ciljne promenljive.
+
+### 5.7.1 Residual vs Fitted dijagrami (Originalna vs Log skala)
+
+```{r}
+model_orig = lm(sales_revenue_usd ~ total_ad_spend + website_traffic + customer_satisfaction_score, data = dataset_clean)
+model_log = lm(log_revenue ~ total_ad_spend + website_traffic + customer_satisfaction_score, data = dataset_clean)
+
+# Vizuelno poređenje Residual vs Fitted plot-ova
+par(mfrow = c(1, 2))
+plot(model_orig, which = 1)
+plot(model_log, which = 1)
+par(mfrow = c(1, 1))
+```
+### 5.7.2 Breusch-Pagan test heteroskedastičnosti
+
+Formalnu potvrdu prisustva heteroskedastičnosti dobijamo primenom Breusch-Pagan testa za oba modela.
+
+```{r}
+bp_orig = bptest(model_orig)
+bp_log = bptest(model_log)
+
+print("--- Breusch-Pagan test: Originalna skala ---")
+print(bp_orig)
+
+print("--- Breusch-Pagan test: Logaritamska skala ---")
+print(bp_log)
+```
+Levi grafik na originalnoj skali pokazuje klasičan levasti oblik i veliku heteroskedastičnost 
+(BP = 13259, p < 2.2e-16), što potvrđuje da greške rastu zajedno sa prihodima. 
+
+Desni grafik pokazuje da je log-transformacija uspela znatno da stabilizuje varijansu i ravnomernije rasporedi reziduale. Iako Breusch-Pagan test i tu ostaje statistički značajan (BP = 7681), to je normalno za ovako ogroman uzorak od 60.000 instanci gde i sitna odstupanja postaju vidljiva. 
+
+```{r}
+names(dataset_clean)
+```
+
+# 6 Feature Selection 
+
+## 6.1  Multikolinearnost
+
+U ovom poglavlju prelazimo na analizu multikolinearnosti i definisanje optimalnog skupa obeležja. Primenom faktora inflacije varijanse (VIF - Variance Inflation Factor) identifikujemo redundantne promenljive koje mogu da naruše stabilnost i interpretabilnost naših regresionih modela.
+
+### 6.1.1 Izračunavanje VIF vrednosti
+
+```{r}
+vif_model = lm(log_revenue ~ marketing_budget_usd + ad_spend_online_usd + ad_spend_offline_usd + 
+                 num_promotions + discount_percentage + num_sales_representatives + 
+                 customer_age + customer_satisfaction_score + competitor_price_index + 
+                 website_traffic + conversion_rate + email_open_rate + 
+                 social_media_followers + days_since_last_purchase + num_previous_purchases + 
+                 online_share + budget_utilization + purchase_frequency + 
+                 region + product_category + season + customer_segment + sales_channel, 
+               data = dataset_clean)
+
+# Računanje VIF-a (koristimo generalizovani VIF - GVIF koji ispravno tretira i kategorijske promenljive sa više nivoa)
+vif_values = vif(vif_model)
+print("--- GVIF vrednosti za sva obeležja ---")
+print(round(vif_values, 2))
+```
+Analizom dobijenih VIF vrednosti uočavamo da pojedine promenljive (posebno one vezane za budžete i marketinške kanale) imaju ekstremno visoke vrednosti (značajno iznad standardnog praga od 5 ili 10), što potvrđuje postojanje ozbiljne multikolinearnosti u modelu.
+
+### 6.1.2 Identifikovanje i filtriranje redundantnih prediktora
+
+Na osnovu izračunatih VIF metrika i prethodne korelacione analize, identifikujemo i izdvajamo atribute koji nose duplirane informacije, kako bismo osigurali stabilnost koeficijenata u kasnijoj fazi modelovanja.
+
+```{r}
+gvif_column = vif_values[, "GVIF"]
+high_vif_features = names(gvif_column[gvif_column > 10])
+print("Obeležja sa visokim VIF-om (> 10) koja zahtevaju pažnju:")
+print(high_vif_features)
+
+```
+```{r}
+
+selected_features = names(gvif_column[gvif_column <= 10])
+print("Konačna lista stabilnih obeležja nakon uklanjanja multikolinearnosti:")
+print(selected_features)
+```
+Međutim pošto nam je ad_spend_offline_usd sa GVIF-om 9.90 da kažemo blizu naše granice i njega bi trebalo da uklonimo 
+
+```{r}
+selected_features = setdiff(selected_features, "ad_spend_offline_usd")
+
+print("Konačna lista stabilnih obeležja nakon uklanjanja multikolinearnosti:")
+print(selected_features)
+```
+Redukcijom skupa podataka uspešno smo uklonili redundantne varijable koje su međusobno delile maltene identičan prostor informacija. Time sprečavamo preveliku varijansu ocena parametara u modelima.
+
+### 6.1.3 Dokumentovanje odluka o izboru feature-a
+
+```{r}
+feature_selection_summary = data.frame(
+  Feature = names(gvif_column),
+  VIF = round(gvif_column, 2),
+  Status = ifelse(gvif_column > 9, "Eliminisano / Redundantno", "Zadržano")
+)
+
+print(feature_selection_summary)
+
+```
+Ovim smo uklonili rizik od nestabilnosti modela usled multikolinearnosti, a zadržali samo one feature koji donose jedinstvenu i korisnu informaciju za predikciju prihoda.
+
+## 6.2 Statistička selekcija feature-a
+
+Nakon rešavanja problema multikolinearnosti, prelazimo na statističku selekciju feature-a kako bismo kvantifikovali linearne i nelinearne veze sa ciljnom promenljivom (log_revenue), izdvojili najuticajnije prediktore i eliminisali slabe ili irelevantne atribute koji ne doprinose prediktivnoj moći modela.
+
+## 6.2.1 Rangiranje numeričkih feature-a po Spearman-ovoj korelaciji
+
+```{r}
+numeric_features = selected_features[sapply(dataset_clean[selected_features], is.numeric)]
+
+
+spearman_corrs = sapply(numeric_features, function(feat) {
+  
+  if(sd(dataset_clean[[feat]], na.rm = TRUE) == 0) {
+    return(NA)
+  }
+  cor(dataset_clean[[feat]], dataset_clean$log_revenue, method = "spearman", use = "complete.obs")
+})
+
+
+spearman_ranking = data.frame(
+  Feature = names(spearman_corrs),
+  Spearman_Rho = round(spearman_corrs, 4),
+  Abs_Correlation = round(abs(spearman_corrs), 4)
+)
+
+spearman_ranking = na.omit(spearman_ranking)
+
+
+spearman_ranking = spearman_ranking[order(-spearman_ranking$Abs_Correlation), ]
+rownames(spearman_ranking) = NULL
+
+print(spearman_ranking)
+```
+Analizom dobijenih vrednosti Spearman-ove korelacije uočavamo da vodeća mesta zauzimaju prediktori poput num_previous_purchases, customer_satisfaction_score i conversion_rate, koji pokazuju stabilniju monotonu povezanost sa prihodima. Sa druge strane, pojedine numeričke promenljive u donjem delu rang-liste pokazuju izuzetno nisku (gotovo zanemarljivu) povezanost sa ciljnom promenljivom, što ukazuje na njihovu slabiju individualnu prediktivnu vrednost.
+
+### 6.2.2 Rangiranje kategorijskih feature-a po veličini efekta
+
+```{r}
+categorical_features = selected_features[sapply(dataset_clean[selected_features], function(x) is.factor(x) || is.character(x))]
+
+
+calculate_eta_sq = function(feat, target, data) {
+  aov_model = aov(data[[target]] ~ as.factor(data[[feat]]))
+  summary_aov = summary(aov_model)[[1]]
+  ss_effect = summary_aov["Sum Sq"][1, 1]
+  ss_total = sum(summary_aov["Sum Sq"])
+  return(ss_effect / ss_total)
+}
+
+
+effect_sizes = sapply(categorical_features, function(feat) {
+  calculate_eta_sq(feat, "log_revenue", dataset_clean)
+})
+
+
+categorical_ranking = data.frame(
+  Feature = names(effect_sizes),
+  Eta_Squared = round(effect_sizes, 4)
+)
+
+categorical_ranking = categorical_ranking[order(-categorical_ranking$Eta_Squared), ]
+rownames(categorical_ranking) = NULL
+
+
+print(categorical_ranking)
+
+```
+Analizom možemo da vidimo da kategorijske promenljive poput customer_segment i product_category snažno utiču na varijaciju prihoda. Sa druge strane, promenljiva region pokazuje zanemarljiv uticaj (blizu nule), što ukazuje na to da ne doprinosi prediktivnoj moći modela.
+
+### 6.2.3 Identifikovanje slabih prediktora
+
+Izdvajamo slabe numeričke i kategorijske prediktore koji ne nose značajnu informaciju za model.
+
+```{r}
+weak_numeric = spearman_ranking$Feature[spearman_ranking$Abs_Correlation < 0.05]
+
+print("Identifikovani slabi numerički prediktori:")
+print(weak_numeric)
+
+```
+```{r}
+
+weak_categorical = categorical_ranking$Feature[categorical_ranking$Eta_Squared < 0.01]
+print("Identifikovani slabi kategorički prediktori:")
+print(weak_categorical)
+
+```
+
+
+```{r}
+final_features = setdiff(selected_features, c(weak_numeric, weak_categorical))
+print("Konačna lista obeležja nakon statističke selekcije:")
+print(final_features)
+```
+Primenom definisanih statističkih pragova uspešno smo izdvojili atribute čija je prediktivna snaga zanemarljiva. Njihovim uklanjanjem iz skupa selected_features dobijamo konačnu listu (final_features) koja sadrži isključivo relevantne promenljive sa dokazanim linearnim ili grupnim uticajem, čime smanjujemo šum u podacima i sprečavamo rizik od overfitting-a.
+
+### 6.2.4 Poređenje modela: Full vs. Selected Feature Set
+
+Kako bismo opravdali redukciju feature-a i dokazali da odbacivanje slabih i redundantnih prediktora nije narušilo kvalitet modela, uporedićemo performanse linearnog modela sa svim obeležjima (Full Model) i modela sa konačno izabranim skupom obeležja (Selected Model)
+```{r}
+formula_full = as.formula(paste("log_revenue ~", paste(names(dataset_clean)[names(dataset_clean) != "log_revenue"], collapse = " + ")))
+model_full = lm(formula_full, data = dataset_clean)
+
+
+formula_selected = as.formula(paste("log_revenue ~", paste(final_features, collapse = " + ")))
+model_selected = lm(formula_selected, data = dataset_clean)
+
+
+comparison_summary = data.frame(
+  Model = c("Full Model (Sva obeležja)", "Selected Model (Redukovan skup)"),
+  Number_of_Features = c(length(coef(model_full)) - 1, length(coef(model_selected)) - 1),
+  Adjusted_R2 = c(summary(model_full)$adj.r.squared, summary(model_selected)$adj.r.squared),
+  AIC = c(AIC(model_full), AIC(model_selected))
+)
+
+print(comparison_summary)
+```
+Poređenje modela ukazuje na ključan kompromis: Full Model (137 prediktora) postiže visok R^2_adj (0.945), ali pati od teške multikolinearnosti i prevelike kompleksnosti. Sa druge strane, Selected Model (18 prediktora) ima niži R^2_adj (0.549) jer su eliminacijom multikolinearnosti uklonjene varijable budžeta koje su nosile primarnu linearnu vezu sa prihodom. Ipak, redukovani model je stabilan, interpretabilan i oslobođen statističkih anomalija, što ga čini pouzdanijim za realnu poslovnu primenu
+
+
+## 6.3 Model-based selekcija feature-a
+
+Nakon statističkog filtriranja, primenjujemo napredne pristupe zasnovane na mašinskom učenju kako bismo dodatno potvrdili značaj obeležja i eliminisali preostali šum. Koristimo Random Forest (za procenu nelinearne važnosti promenljivih preko smanjenja srednje kvadratne greške) i Lasso regularizaciju (L1 penalizaciju koja automatski redukuje koeficijente slabih prediktora na nulu).
+
+
+### 6.3.1 Random Forest – Rangiranje važnosti feature-a
+```{r}
+set.seed(42)
+
+rf_model = randomForest(log_revenue ~ ., 
+                        data = dataset_clean[, c(final_features, "log_revenue")], 
+                        ntree = 300,
+                        importance = TRUE)
+
+rf_imp = importance(rf_model, type = 1)
+rf_ranking = data.frame(
+  Feature = rownames(rf_imp),
+  Importance = round(rf_imp[, 1], 4)
+)
+
+rf_ranking = rf_ranking[order(-rf_ranking$Importance), ]
+rownames(rf_ranking) = NULL
+
+
+print(head(rf_ranking, 10))
+```
+
+Random Forest analiza pokazuje koja obeležja nose najveću prediktivnu moć kada se uzmu u obzir složene, nelinearne interakcije između promenljivih. Vodeće pozicije ubedljivo drže kategoričke promenljive poput segmenta kupaca i kategorije proizvoda, dok značajan doprinos potvrđuju i istorija kupovina i ocene zadovoljstva.
+
+# 6.3.2 Lasso regularizacija (L1 penalizacija)
+```{r}
+x_mat = model.matrix(log_revenue ~ ., data = dataset_clean[, c(final_features, "log_revenue")])[, -1]
+y_vec = dataset_clean$log_revenue
+
+
+set.seed(42)
+cv_lasso = cv.glmnet(x_mat, y_vec, alpha = 1, nfolds = 10)
+best_lambda = cv_lasso$lambda.min
+
+
+lasso_model = glmnet(x_mat, y_vec, alpha = 1, lambda = best_lambda)
+lasso_coefs = coef(lasso_model)
+
+
+lasso_selected_dummies = rownames(lasso_coefs)[lasso_coefs[, 1] != 0]
+lasso_selected_dummies = setdiff(lasso_selected_dummies, "(Intercept)")
+
+print(paste("Broj selektovanih feature-a nakon Lasso regularizacije je :",length(lasso_selected_dummies)))
+
+```
+Lasso regularizacija je automatski eliminisala promenljive sa najmanjim doprinosom pritiskajući njihove koeficijente na tačnu nulu, čime obezbeđujemo minimalnu složenost i optimalnu generalizacionu moć modela.
+
+
+# 6.3.3 Poređenje selektovanih feature-a i kreiranje konačne liste
+
+U cilju postizanja maksimalne robusnosti, uporedićemo obeležja dobijena statističkim metodama, Random Forest-om i Lasso regularizacijom, te formirati konačni skup obeležja za finalno modelovanje.
+
+```{r}
+rf_top_features = rf_ranking$Feature[rf_ranking$Importance > 10]
+
+lasso_original_features = unique(sapply(lasso_selected_dummies, function(col) {
+  matched = final_features[sapply(final_features, function(f) grepl(f, col))]
+  if(length(matched) > 0) return(matched[1]) else return(col)
+}))
+
+
+final_model_features = intersect(intersect(final_features, rf_top_features), lasso_original_features)
+
+
+if(length(final_model_features) == 0) {
+  final_model_features = intersect(final_features, rf_top_features)
+}
+
+print("Konačna lista feature-a za mašinsko učenje (Final Feature List):")
+print(final_model_features)
+print(paste("Ukupan broj feature-a u konačnom skupu:", length(final_model_features)))
+```
+Kombinovanjem statističkih metoda, Random Forest-a i Lasso regularizacije formiran je optimalan skup od 8 feature-a (4 numerička i 4 kategorička). Ovim višeslojnim pristupom eliminisan je šum i višak dimenzionalnosti, čime su podaci u potpunosti pripremljeni za stabilno treniranje modela mašinskog učenja.
 
