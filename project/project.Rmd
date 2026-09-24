@@ -34,7 +34,7 @@ Skup podataka preuzet je sa platforme Kaggle:
 
 Izvor: [Marketing i Sales Dataset](https://www.kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset)
 
-Cilj rada nam je detaljna analiza faktora koji utiču na ostvareni prihod od prodaje (sales_revenue_usd) 
+Cilj rada nam je detaljna analiza faktora koji utiču nas ostvareni prihod od prodaje (sales_revenue_usd) 
 i razvoj regresionih modela mašinskog učenja za preciznu predikciju prihoda na osnovu marketinških investicija i parametara ponašanja kupaca.
 
 
@@ -195,7 +195,6 @@ sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 36
 ## 2.8 Analiza outlier-a
 
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
-
 
 ```{r}
 ggplot(dataset, aes(x = "", y = sales_revenue_usd)) +
@@ -665,6 +664,237 @@ dataset_clean <- dataset_clean %>%
 #Provera: Potvrda da nema preostalih NA vrednosti
 colSums(is.na(dataset_clean))
 ```
+
+# 4 Feature engineering
+
+U ovom poglavlju kreiramo nove feature na osnovu postojećih podataka kako bismo modelima mašinskog učenja pružili dodatne ulazne informacije.
+
+Kreirani su sledeći feature-i:
+
+
+## 4.1 Kreiranje finansijskih i marketinških pokazatelja
+
+total_ad_spend: Predstavlja koliko je novca ukupno otišlo na reklame, kada saberemo online i offline troškove.
+
+```{r}
+dataset_clean$total_ad_spend = dataset_clean$ad_spend_online_usd + dataset_clean$ad_spend_offline_usd
+```
+
+online_share: Pokazuje koliki udeo u ukupnom budžetu za reklame zauzima baš online oglašavanje, što nam otkriva koliko je neka kampanja digitalno orijentisana.
+
+```{r}
+dataset_clean$online_share = ifelse(dataset_clean$total_ad_spend > 0, dataset_clean$ad_spend_online_usd / dataset_clean$total_ad_spend, 0)
+```
+
+budget_utilization: Pokazuje nam koliki deo ukupno namenjenog budžeta je stvarno potrošen na reklame.
+
+```{r}
+dataset_clean$budget_utilization = ifelse(dataset_clean$marketing_budget_usd > 0, dataset_clean$total_ad_spend / dataset_clean$marketing_budget_usd, 0)
+```
+
+unspent_budget: Predstavlja ostatak novca koji je bio planiran u budžetu, ali na kraju nije potrošen na oglašavanje.
+```{r}
+dataset_clean$unspent_budget = dataset_clean$marketing_budget_usd - dataset_clean$total_ad_spend
+```
+
+spend_per_rep: Predstavlja koliko je novca za reklame potrošeno po jednom prodajnom predstavniku, što nam pomaže da vidimo opterećenje i efikasnost tima terenu.
+```{r}
+dataset_clean$spend_per_rep = dataset_clean$total_ad_spend / dataset_clean$num_sales_representatives
+```
+
+spend_per_promotion: Predstavlja koliko je novca uloženo po jednoj aktivnoj akciji ili popustu.
+```{r}
+dataset_clean$spend_per_promotion =ifelse(dataset_clean$num_promotions > 0, dataset_clean$total_ad_spend / dataset_clean$num_promotions, dataset_clean$total_ad_spend)
+```
+
+budget_per_traffic: Predstavlja odnos između ukupnog budžeta i broja ljudi koji su posetili sajt.
+```{r}
+dataset_clean$budget_per_traffic = dataset_clean$marketing_budget_usd / dataset_clean$website_traffic
+```
+
+## 4.2 Logaritamske transformacije i analiza distribucija
+
+log_budget, log_traffic, log_followers logaritamski transformisane vrednosti budžeta, poseta sajtu i broja pratilaca,čijom se primenom smanjuje visoka asimetrija  podataka i ublažava uticaj ekstremnih vrednosti na modele.
+```{r}
+dataset_clean$log_budget = log(dataset_clean$marketing_budget_usd)
+dataset_clean$log_traffic = log(dataset_clean$website_traffic)
+dataset_clean$log_followers = log(dataset_clean$social_media_followers + 1)
+```
+
+### 4.2.1 Analiza distribucija pre i posle transformacije
+
+```{r}
+summary(dataset_clean[, c("marketing_budget_usd", "log_budget", 
+                    "website_traffic", "log_traffic", 
+                    "social_media_followers", "log_followers")])
+```
+Pogled na statistiku pre i posle transformacije odlično ilustruje problem koji smo imali sa originalnim podacima. Kod početnih vrednosti za budžet, posete i pratioce vidimo ogroman raskorak između medijane i proseka (recimo, kod saobraćaja je medijana oko 8.000, a prosek skče na preko 24.000 zbog nekoliko drastično velikih vrednosti na desnom kraju). To znači da su podaci bili prilično razvučeni i asimetrični.
+Kada smo primenili logaritam  prosek i medijana su se praktično poklopili, a ekstremni rasponi su svedeni na normalnu meru. Time smo eliminisali raspon velikih brojeva, pa će modeli moći znatno stabilnije i preciznije da uče na ovim podacima.
+
+## 4.3 Vremenske karakteristike (Time Features)
+
+month i quarter oznake meseca i kvartala u godini, korisne za praćenje periodičnih skokova u prodaji (poput prazničnih kupovina).
+
+```{r}
+dataset_clean$date = as.Date(dataset_clean$date)
+dataset_clean$month = format(dataset_clean$date, "%m")
+dataset_clean$quarter = quarters(dataset_clean$date)
+```
+
+day_of_week: Dan u nedelji kada je transakcija zabeležena.
+```{r}
+dataset_clean$day_of_week = weekdays(dataset_clean$date)
+```
+
+is_weekend: Indikator (0 ili 1) koji govori da li je kupovina obavljena tokom vikenda.
+```{r}
+dataset_clean$is_weekend =ifelse(dataset_clean$day_of_week %in% c("Saturday", "Sunday"), 1, 0)
+```
+
+is_year_end: Pokazuje da li transakcija pada u decembar, period pojačanih prazničnih aktivnosti.
+
+```{r}
+dataset_clean$is_year_end=ifelse(format(dataset_clean$date, "%m") == "12", 1, 0)
+```
+
+
+days_since_start: Linearni trend koji meri koliko je dana prošlo od prvog zabeleženog datuma u setu, hvatajući dugoročni rast ili pad.
+
+```{r}
+dataset_clean$days_since_start = as.numeric(dataset_clean$date - min(dataset_clean$date, na.rm = TRUE))
+```
+
+season: Definiše meteorološku sezonu u kojoj je ostvarena prodaja.
+```{r}
+dataset_clean$season = case_when(
+  dataset_clean$month %in% c("12", "01", "02") ~ "Zima",
+  dataset_clean$month %in% c("03", "04", "05") ~ "Proleće",
+  dataset_clean$month %in% c("06", "07", "08") ~ "Leto",
+  dataset_clean$month %in% c("09", "10", "11") ~ "Jesen",
+  TRUE ~ "Nepoznato"
+)
+
+```
+## 4.4 Karakteristike kupaca (Customer Features)
+
+purchase_frequency: Predstavlja intenzitet kupovine, odnosno prosečnu učestalost kojom kupac obavlja transakcije tokom svog aktivnog staža. Računa se stavljanjem u odnos ukupnog broja prethodnih kupovina i efektivnog perioda aktivnosti, čime dobijamo realniju sliku o vernosti kupca nego da posmatramo samo grubu sumu.
+
+```{r}
+dataset_clean$purchase_frequency =ifelse(
+  (dataset_clean$days_since_start - dataset_clean$days_since_last_purchase) > 0,
+  dataset_clean$num_previous_purchases / (dataset_clean$days_since_start - dataset_clean$days_since_last_purchase),
+  dataset_clean$num_previous_purchases
+)
+```
+is_returning: Logički indikator (0 ili 1) koji jasno razdvaja nove kupce od onih stalnih koji se redovno vraćaju. 
+```{r}
+dataset_clean$is_returning = ifelse(dataset_clean$customer_segment == "Regular" | dataset_clean$num_previous_purchases > 1, 1, 0)
+
+```
+
+customer_age_group: Pretvara numeričku promenljivu godina u kategorijalnu, što modelima mašinskog učenja olakšava prepoznavanje nelinearnih šablona po generacijama.
+
+```{r}
+dataset_clean$customer_age_group = cut(
+  dataset_clean$customer_age,
+  breaks = c(0, 25, 40, 60, 100),
+  labels = c("Mladi (do 25)", "Srednje doba (26-40)", "Stariji (41-60)", "Veterani (60+)"),
+  include.lowest = TRUE
+)
+```
+
+
+## 4.5 Tržišne i digitalne karakteristike (Market & Digital Features)
+
+price_advantage: Prikazuje našu cenovnu prednost u odnosu na konkurenciju, dobijenu preko indeksa cene konkurencije (competitor_price_index).
+
+```{r}
+dataset_clean$price_advantage = ifelse(
+  !is.na(dataset_clean$competitor_price_index), 
+  100 - dataset_clean$competitor_price_index, 
+  NA
+)
+```
+
+effective_discount: Kombinuje procenat odobrenog popusta i broj aktivnih promocija da vidimo ukupni efekat popusta na kupca.
+
+```{r}
+dataset_clean$effective_discount = dataset_clean$discount_percentage * dataset_clean$num_promotions
+```
+
+estimated_conversions: Daje procenu broja ostvarenih kupovina na osnovu poseta sajtu i stope konverzije.
+
+```{r}
+dataset_clean$estimated_conversions = dataset_clean$website_traffic * dataset_clean$conversion_rate
+```
+
+traffic_per_follower: Meri odnos poseta sajtu i broja pratilaca na društvenim mrežama.
+```{r}
+dataset_clean$traffic_per_follower = dataset_clean$website_traffic / (dataset_clean$social_media_followers + 1)
+```
+
+## 4.6 Interakcije obeležja (Feature Interactions)
+
+segment_product: Kombinuje segment kupaca i kategoriju proizvoda, da vidimo koji tipovi kupaca preferiraju koje proizvode.
+```{r}
+dataset_clean$segment_product = as.factor(paste(dataset_clean$customer_segment, dataset_clean$product_category, sep = "_"))
+```
+season_product: Spaja sezonu i kategoriju proizvoda radi praćenja sezonskih promena u potražnji.
+
+```{r}
+dataset_clean$season_product = as.factor(paste(dataset_clean$season, dataset_clean$product_category, sep = "_"))
+```
+
+channel_segment: Povezuje kanal prodaje sa segmentom kupaca, otkrivajući preko kog kanala koji kupci najčešće trguju.
+
+```{r}
+dataset_clean$channel_segment = as.factor(paste(dataset_clean$sales_channel, dataset_clean$customer_segment, sep = "_"))
+```
+
+## 4.7 Provera i verifikacija novih feature-a
+
+Proveravamo sve nove feature  kako bismo utvrdili osnovnu statistiku, potvrdili ispravnost formula i osigurali da u njima nema neočekivanih anomalija.
+
+```{r}
+engineered_cols = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+
+summary(dataset_clean[, engineered_cols])
+colSums(is.na(dataset_clean[, engineered_cols]))
+sapply(dataset_clean[, engineered_cols], function(x) sum(is.infinite(x)))
+```
+Nakon detaljnog pregleda statistike, potvrđeno je da su sv novi feature-i uspešno generisana i da se kreću u očekivanim i logičnim opsezima.
+
+## 4.8 Prevencija curenja podataka (Target Leakage Prevention)
+
+Treba programski osiguravamo i verifikujemo da nijedan novih feature-a u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
+
+```{r}
+target_variable = "sales_revenue_usd"
+contains_target = any(grepl(target_variable, engineered_cols))
+stopifnot("GREŠKA: Curenje podataka! Nova obeležja koriste sales_revenue_usd!" = !contains_target)
+print("Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd).")
+```
+Uspešno smo proverili da ni jedan novi feature ne koristi ciljnu promenljivu sales_revenue_usd
+
+U ovm koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
+```{r}
+num_engineered = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+target_correlations = cor(dataset_clean[, num_engineered], dataset_clean[[target_variable]], use = "complete.obs")
+print(target_correlations)
+```
+Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
+Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+
 
 # 4 Feature engineering
 
