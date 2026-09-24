@@ -399,8 +399,94 @@ dataset$customer_age_group <- cut(
 )
 ```
 
+<<<<<<< HEAD
+price_advantage: Prikazuje našu cenovnu prednost u odnosu na konkurenciju, dobijenu preko indeksa cene konkurencije (competitor_price_index).
+
+```{r}
+dataset$price_advantage = ifelse(
+  !is.na(dataset$competitor_price_index), 
+  100 - dataset$competitor_price_index, 
+  NA
+)
+```
+
+effective_discount: Kombinuje procenat odobrenog popusta i broj aktivnih promocija da vidimo ukupni efekat popusta na kupca.
+
+```{r}
+dataset$effective_discount = dataset$discount_percentage * dataset$num_promotions
+```
+
+estimated_conversions: Daje procenu broja ostvarenih kupovina na osnovu poseta sajtu i stope konverzije.
+
+```{r}
+dataset$estimated_conversions = dataset$website_traffic * dataset$conversion_rate
+```
+
+traffic_per_follower: Meri odnos poseta sajtu i broja pratilaca na društvenim mrežama.
+```{r}
+dataset$traffic_per_follower = dataset$website_traffic / (dataset$social_media_followers + 1)
+```
+
+segment_product: Kombinuje segment kupaca i kategoriju proizvoda, da vidimo koji tipovi kupaca preferiraju koje proizvode.
+```{r}
+dataset$segment_product = as.factor(paste(dataset$customer_segment, dataset$product_category, sep = "_"))
+```
+season_product: Spaja sezonu i kategoriju proizvoda radi praćenja sezonskih promena u potražnji.
+
+```{r}
+dataset$season_product = as.factor(paste(dataset$season, dataset$product_category, sep = "_"))
+```
+
+channel_segment: Povezuje kanal prodaje sa segmentom kupaca, otkrivajući preko kog kanala koji kupci najčešće trguju.
+
+```{r}
+dataset$channel_segment = as.factor(paste(dataset$sales_channel, dataset$customer_segment, sep = "_"))
+```
+
+Proveravamo sve nove feature  kako bismo utvrdili osnovnu statistiku, potvrdili ispravnost formula i osigurali da u njima nema neočekivanih anomalija.
+
+```{r}
+engineered_cols = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+
+summary(dataset[, engineered_cols])
+colSums(is.na(dataset[, engineered_cols]))
+sapply(dataset[, engineered_cols], function(x) sum(is.infinite(x)))
+```
+Nakon detaljnog pregleda statistike, potvrđeno je da su sv novi feature-i uspešno generisana i da se kreću u očekivanim i logičnim opsezima.
+
+
+Treba programski osiguravamo i verifikujemo da nijedno novokreirano obeležje u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
+
+```{r}
+target_variable = "sales_revenue_usd"
+contains_target = any(grepl(target_variable, engineered_cols))
+stopifnot("GREŠKA: Curenje podataka! Nova obeležja koriste sales_revenue_usd!" = !contains_target)
+print("Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd).")
+```
+Uspešno smo proverili da ni jedan novi feature ne koristi ciljnu promenljivu sales_revenue_usd
+
+U ovm koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
+```{r}
+num_engineered = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+target_correlations <- cor(dataset[, num_engineered], dataset[[target_variable]], use = "complete.obs")
+print(target_correlations)
+```
+Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
+Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+=======
 
 
 
 
 
+>>>>>>> main

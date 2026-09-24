@@ -34,7 +34,7 @@ Skup podataka preuzet je sa platforme Kaggle:
 
 Izvor: [Marketing i Sales Dataset](https://www.kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset)
 
-Cilj rada nam je detaljna analiza faktora koji utiču na ostvareni prihod od prodaje (sales_revenue_usd) 
+Cilj rada nam je detaljna analiza faktora koji utiču nas ostvareni prihod od prodaje (sales_revenue_usd) 
 i razvoj regresionih modela mašinskog učenja za preciznu predikciju prihoda na osnovu marketinških investicija i parametara ponašanja kupaca.
 
 
@@ -75,6 +75,8 @@ str(dataset)
 Sada nakon što smo videli koji sve feature-i postoje u setu podataka  možemo da napišemo kratak opis o njima i da lepo to predstavimo tabelarno,za to nam treba da učitamo paket knitr i iskorisitmo funkciju kable. 
 
 ## 2.3 Pregled i opis svih feature-a
+<<<<<<< HEAD
+=======
 
 ```{r}
 
@@ -192,11 +194,17 @@ Provera da li broj dana od poslednje kupovine prelazi 365
 ```{r}
 sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 365, na.rm = TRUE)
 ```
+<<<<<<< HEAD
+=======
 
 ## 2.8 Analiza outlier-a
 
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
+>>>>>>> main
 
+## 2.8 Analiza outlier-a
+
+U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
 
 ```{r}
 ggplot(dataset, aes(x = "", y = sales_revenue_usd)) +
@@ -666,7 +674,10 @@ dataset_clean <- dataset_clean %>%
 colSums(is.na(dataset_clean))
 ```
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
 # 4 Feature engineering
 
 U ovom poglavlju kreiramo nove feature na osnovu postojećih podataka kako bismo modelima mašinskog učenja pružili dodatne ulazne informacije.
@@ -896,3 +907,5 @@ print(target_correlations)
 ```
 Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
 Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+
+
