@@ -1,0 +1,1 @@
+"0","dataset$spend_per_rep = dataset$total_ad_spend / dataset$num_sales_representatives"

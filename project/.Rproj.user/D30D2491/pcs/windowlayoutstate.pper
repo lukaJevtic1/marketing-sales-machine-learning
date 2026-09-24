@@ -6,7 +6,11 @@
         "windowheight": 975
     },
     "right": {
+<<<<<<< HEAD
         "splitterpos": 591,
+=======
+        "splitterpos": 592,
+>>>>>>> main
         "topwindowstate": "NORMAL",
         "panelheight": 937,
         "windowheight": 975

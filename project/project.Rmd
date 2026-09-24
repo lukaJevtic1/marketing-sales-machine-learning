@@ -75,6 +75,11 @@ str(dataset)
 Sada nakon što smo videli koji sve feature-i postoje u setu podataka  možemo da napišemo kratak opis o njima i da lepo to predstavimo tabelarno,za to nam treba da učitamo paket knitr i iskorisitmo funkciju kable. 
 
 ## 2.3 Pregled i opis svih feature-a
+<<<<<<< HEAD
+=======
+
+```{r}
+>>>>>>> main
 
 ```{r}
  opis_kolona=data.frame(
@@ -191,6 +196,13 @@ Provera da li broj dana od poslednje kupovine prelazi 365
 ```{r}
 sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 365, na.rm = TRUE)
 ```
+<<<<<<< HEAD
+=======
+
+## 2.8 Analiza outlier-a
+
+U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
+>>>>>>> main
 
 ## 2.8 Analiza outlier-a
 
@@ -613,7 +625,7 @@ mcar_result <- mice::mcar(
   imputed = mcar_imp,
   replications = 200,
   alpha = 0.05
-)
+)s
 
 # Prikaz rezultata
 mcar_result
@@ -664,6 +676,10 @@ dataset_clean <- dataset_clean %>%
 colSums(is.na(dataset_clean))
 ```
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
 # 4 Feature engineering
 
 U ovom poglavlju kreiramo nove feature na osnovu postojećih podataka kako bismo modelima mašinskog učenja pružili dodatne ulazne informacije.
@@ -801,6 +817,7 @@ dataset_clean$customer_age_group = cut(
   include.lowest = TRUE
 )
 ```
+<<<<<<< HEAD
 
 
 ## 4.5 Tržišne i digitalne karakteristike (Market & Digital Features)
@@ -895,3 +912,5 @@ Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i oče
 Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
 
 
+=======
+>>>>>>> main

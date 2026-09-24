@@ -399,6 +399,7 @@ dataset$customer_age_group <- cut(
 )
 ```
 
+<<<<<<< HEAD
 price_advantage: Prikazuje našu cenovnu prednost u odnosu na konkurenciju, dobijenu preko indeksa cene konkurencije (competitor_price_index).
 
 ```{r}
@@ -482,3 +483,10 @@ print(target_correlations)
 ```
 Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
 Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+=======
+
+
+
+
+
+>>>>>>> main

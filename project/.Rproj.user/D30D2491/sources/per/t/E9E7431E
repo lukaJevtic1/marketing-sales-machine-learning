@@ -1,9 +1,16 @@
 {
     "id": "E9E7431E",
+<<<<<<< HEAD
     "path": "C:/Users/MyPC/Desktop/project/project.Rmd",
     "project_path": "project.Rmd",
     "type": "r_markdown",
     "hash": "2694656111",
+=======
+    "path": "C:/Users/MyPC/Downloads/project/project.Rmd",
+    "project_path": "project.Rmd",
+    "type": "r_markdown",
+    "hash": "1190519192",
+>>>>>>> main
     "contents": "",
     "dirty": false,
     "created": 1788201386340.0,
@@ -14,6 +21,7 @@
         "chunk_output_type": "inline",
         "source_window_id": "",
         "Source": "Source",
+<<<<<<< HEAD
         "cursorPosition": "484,0",
         "scrollLine": "458",
         "last_setup_crc32": ""
@@ -24,6 +32,18 @@
     "collab_server": "",
     "source_window": "",
     "last_content_update": 1789925598977,
+=======
+        "cursorPosition": "267,0",
+        "scrollLine": "219",
+        "last_setup_crc32": ""
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1789921012,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1789921012,
+>>>>>>> main
     "read_only": false,
     "read_only_alternatives": []
 }
