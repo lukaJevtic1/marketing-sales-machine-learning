@@ -6,10 +6,10 @@ output: html_notebook
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
-install.packages("mice")
 library(mice)
 library(tidyverse)
 library(knitr)
+library(lmtest)
 ```
 
 # Analiza skupa podataka Marketing & Sales
@@ -191,9 +191,6 @@ Provera da li broj dana od poslednje kupovine prelazi 365
 sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 365, na.rm = TRUE)
 ```
 
-
-```
-
 ## 2.8 Analiza outlier-a
 
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
@@ -288,6 +285,7 @@ kod broja pratilaca na društvenim mrežama kriva gustine je glatka i prirodna, 
 
 
 Pregled distribucija pokazuje da podaci deluju sasvim prirodno i realno, bez veštačkih šablona ili čudnih prekida. Kada se sve sabere sa prethodnim proverama, set podataka je čist, pouzdan i spreman za dalju analizu
+
 
 
 # 3 Analiza nedostajućih vrednosti
@@ -1284,3 +1282,237 @@ print(paste("Procenat outlier-a u ukupnom skupu:", round((length(outliers_revenu
 Formula nam je izbacila gornju granicu na 13.612,81 USD, a sve preko toga je označila kao autlajer. Tako smo dobili 3.816 takvih redova, što mu dođe oko 6.36% celog skupa.
 
 Iako deluje kao veliki procenat, u svetu prodaje i marketinga skroz je normalno da neke kampanje iskoče i donesu mnogo veće pare od proseka. To nisu nikakve greške, već naši najuspešniji rezultati. Upravo zato ne diramo i ne brišemo ove outliere — da ih sklonimo, osiromašili bismo podatke i model ne bi imao na čemu da uči šta zapravo donosi najveći profit.
+## 5.4 Korelaciona analiza obeležja
+
+U ovom delu sprovodimo ispitivanje međusobne povezanosti numeričkih atributa. Pošto pojedine promenljive u našem skupu podataka pokazuju izraženu asimetriju i prisustvo ekstremnih vrednosti, koristimo Spearman-ov koeficijent korelacije, pošto on meri monotonu povezanost i otporniji je na outlier-e u odnosu na standardni Pearson-ov koeficijent.
+
+### 5.4.1 Izračunavanje Spearmanove matrice korelacije
+
+```{r}
+numeric_cols_for_corr = dataset_clean %>%
+  select(
+    sales_revenue_usd, marketing_budget_usd, ad_spend_online_usd, 
+    ad_spend_offline_usd, num_promotions, discount_percentage, 
+    num_sales_representatives, customer_age, customer_satisfaction_score, 
+    competitor_price_index, website_traffic, conversion_rate, 
+    email_open_rate, social_media_followers, days_since_last_purchase, 
+    num_previous_purchases, total_ad_spend, online_share, 
+    budget_utilization, unspent_budget, spend_per_rep, 
+    spend_per_promotion, budget_per_traffic, purchase_frequency, 
+    traffic_per_follower
+  )
+
+
+spearman_matrix = cor(numeric_cols_for_corr, method = "spearman", use = "complete.obs")
+
+revenue_correlations = sort(spearman_matrix["sales_revenue_usd", ], decreasing = TRUE)
+print("Spearman-ove korelacije sa ciljnom promenljivom (sales_revenue_usd):")
+print(round(revenue_correlations, 3))
+```
+Kada izdvojimo korelacije sa ciljnom promenljivom (sales_revenue_usd), vidimo da finansijska ulaganja (marketing_budget_usd, total_ad_spend) ostvaruju umerene pozitivne vrednosti (oko 0.5), dok obeležja poput poseta sajtu (website_traffic) i društvenih mreža pokazuju potpuno neutralnu korelaciju. To ukazuje na to da veći budžeti prate veći prihod, ali da sama masovna vidljivost ne garantuje profit bez efikasnih konverzija.
+
+
+### 5.4.2 Vizuelni prikaz korelacije (Correlation matrix plot)
+Umesto klasične velike matrice koja može biti nepregledna sa velikim brojem obeležja, korelacije direktno u odnosu na našu ciljnu promenljivom (sales_revenue_usd) prikazujemo preglednim horizontalnim stubastim dijagramom.
+```{r}
+revenue_corr_df = data.frame(
+  Feature = names(revenue_correlations),
+  Correlation = as.numeric(revenue_correlations)
+) %>%
+  filter(Feature != "sales_revenue_usd") # Uklanjamo samopovezivanje (1.0)
+
+# Crtanje horizontalnog barplota
+ggplot(revenue_corr_df, aes(x = reorder(Feature, Correlation), y = Correlation, fill = Correlation > 0)) +
+  geom_col(alpha = 0.85, color = "#2C3E50") +
+  coord_flip() +
+  scale_fill_manual(values = c("#E74C3C", "#3498DB"), guide = "none") +
+  theme_minimal() +
+  labs(title = "Spearman-ova korelacija obeležja sa prihodom (sales_revenue_usd)",
+       x = "Obeležje",
+       y = "Koeficijent korelacije") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.y = element_text(size = 9))
+```
+Sa grafikona se jasno izdvajaju tri grupe obeležja u odnosu na prihod (sales_revenue_usd):  
+
+Snažne pozitivne veze: Finansijska ulaganja (marketing_budget_usd, total_ad_spend, onlajn/oflajn budžeti) imaju najveći uticaj sa korelacijama oko 0.5. 
+
+Neutralna zona: Većina ostalih obeležja (poput poseta sajtu i ocena zadovoljstva) ima korelaciju blisku nuli, što znači da nemaju direktan linearni uticaj na prihod.
+
+Blage negativne veze: Indeks cena konkurencije i popusti (discount_percentage) nalaze se na dnu sa negativnim predznakom, što sugeriše da veći popusti ne donose automatski i veći ukupan prihod.
+
+### 5.4.3 Identifikacija snažnih veza i redundantnih obeležja
+```{r}
+get_high_correlations = function(matrix, threshold = 0.75) {
+  cor_df = as.data.frame(as.table(matrix))
+  names(cor_df) = c("Var1", "Var2", "Correlation")
+  cor_df = cor_df %>% 
+    filter(as.character(Var1) < as.character(Var2)) %>% 
+    filter(abs(Correlation) >= threshold) %>%
+    arrange(desc(abs(Correlation)))
+  return(cor_df)
+}
+
+high_corr_pairs = get_high_correlations(spearman_matrix, threshold = 0.75)
+print(head(high_corr_pairs, 10))
+```
+
+Analizom parova izdvaja se izražena multikolinearnost među finansijskim obeležjima:
+
+Ekstremna redundantnost budžeta: Promenljive total_ad_spend, marketing_budget_usd, kao i onlajn i oflajn budžeti pokazuju korelacije između 0.91 i 0.99, što je logično jer su međusobno izvedene i zbirno povezane. Visoku povezanost beleži i neiskorišćeni budžet (unspent_budget).
+
+Implikacija za modelovanje: Zbog visoke multikolinearnosti, u kasnijoj fazi izgradnje modela (poput linearne regresije) biće neophodno ukloniti redundantne promenljive kako bi se sprečila nestabilnost koeficijenata.
+
+## 5.5 Kategorijska analiza i testiranje značajnosti razlika
+
+U ovom delu analiziramo uticaj i razlike ciljne promenljive (`sales_revenue_usd`) u zavisnosti od ključnih kategorijskih obeležja (kao što su region prodaje i kategorija proizvoda). Koristimo i vizuelne metode (boxplote) i formalne statističke testove (ANOVA i Kruskal-Wallis) uz merenje veličine efekta (Eta squared)
+
+
+### 5.5.1 Prihod po kategorijama proizvoda
+
+```{r}
+ggplot(dataset_clean, aes(x = product_category, y = sales_revenue_usd, fill = product_category)) +
+  geom_boxplot(alpha = 0.8, outlier.color = "#C0392B", outlier.size = 1.5) +
+  theme_minimal() +
+  labs(title = "Boxplot: Ostvareni prihod po kategorijama proizvoda",
+       x = "Kategorija proizvoda",
+       y = "Prihod (USD)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.x = element_text(angle = 30, hjust = 1),
+        legend.position = "none")
+```
+Boxplot dijagram pokazuju ujednačene medijane i interkvartilne opsege kroz sve kategorije proizvoda, što ukazuje na ravnomerno raspoređene prihode bez izražene dominacije pojedine grupe.
+
+### 5.5.2 ANOVA i Kruskal-Wallis testovi sa merenjem veličine efekta
+
+ored univarjantne analize, primenjujemo ANOVA i neparametrijski Kruskal-Wallis test uz izračunavanje veličine efekta (Eta squared).
+
+```{r}
+anova_model = aov(sales_revenue_usd ~ product_category, data = dataset_clean)
+print("--- Rezultati ANOVA testa ---")
+print(summary(anova_model))
+
+
+kruskal_result = kruskal.test(sales_revenue_usd ~ product_category, data = dataset_clean)
+print("--- Rezultati Kruskal-Wallis testa ---")
+print(kruskal_result)
+
+if (!requireNamespace("rstatix", quietly = TRUE)) {
+ 
+  ss_model = summary(anova_model)[[1]][["Sum Sq"]][1]
+  ss_total = sum(summary(anova_model)[[1]][["Sum Sq"]])
+  eta_squared = ss_model / ss_total
+  print(paste("Izračunati Eta-squared (eta^2):", round(eta_squared, 4)))
+} else {
+  library(rstatix)
+  eta_res = dataset_clean %>% anova_test(sales_revenue_usd ~ product_category)
+  print(eta_res)
+}
+```
+Statistička značajnost: Rezultati ANOVA testa F=823 i Kruskal-Wallis testa X^2=8776.9 uz p < 2.2e-16 potvrđuju da su razlike u prihodima između kategorija proizvoda izuzetno statistički značajne.
+
+Izračunati Eta-squared od 0.052 pokazuje da kategorija proizvoda objašnjava oko 5.2% varijacije prihoda, što predstavlja merljiv i opravdan uticaj za uključivanje u prediktivne modele.
+
+
+```{r}
+names(dataset_clean)
+```
+
+## 5.6 Vremenska analiza i sezonski obrasci
+
+U ovom delu analiziramo kretanje ostvarenog prihoda kroz vreme (po godinama, kvartalima i mesecima) koristeći već pripremljene vremenske atribute u skupu podataka, kako bismo identifikovali trendove i uticaj Q4 efekta.
+
+
+### 5.6.1 Agregacija prihoda po godinama
+
+```{r}
+#1. Prihod po godinama (ekstrakcija godine iz 'date' kolone)
+revenue_by_year = dataset_clean %>%
+  mutate(year = format(as.Date(date), "%Y")) %>%
+  group_by(year) %>%
+  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE),
+            n_transactions = n())
+
+print(revenue_by_year)
+
+```
+Poslovanje je izuzetno stabilno od 2020. do 2023. godine, uz ujednačen ukupan prihod (86,6–89,9 miliona USD) i stabilan obim od oko 15.000 transakcija godišnje.
+
+### 5.6.2 Agregacija prihoda po  kvartalima 
+
+```{r}
+# 2. Prihod po kvartalima (korišćenje postojeće kolone 'quarter')
+revenue_by_quarter = dataset_clean %>%
+  group_by(quarter) %>%
+  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE))
+
+print(revenue_by_quarter)
+
+```
+Prihodi rastu kroz kvartale i dostižu maksimum od 113,4 miliona USD u četvrtom kvartalu (Q4), čime se potvrđuje snažan sezonski uticaj kraja godine.
+
+### 5.6.3 Agregacija prihoda po mesecima
+
+```{r}
+# 3. Prihod po mesecima (korišćenje postojeće kolone 'month')
+revenue_by_month = dataset_clean %>%
+  group_by(month) %>%
+  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE))
+
+print(revenue_by_month)
+```
+Promet je stabilan u prvoj polovini godine (22–26 miliona USD mesečno), dok u oktobru, novembru i decembru naglo skče na preko 36 miliona USD mesečno.
+
+### 5.6.4 Vizuelizacija sezonskih obrazaca i istraživanje Q4 efekta
+
+```{r}
+ggplot(revenue_by_month, aes(x = month, y = total_revenue, group = 1)) +
+  geom_line(color = "#2980B9", linewidth = 1.2) +
+  geom_point(color = "#C0392B", size = 3) +
+  theme_minimal() +
+  labs(title = "Sezonski obrasci: Ukupan prihod po mesecima",
+       x = "Mesec",
+       y = "Ukupan prihod (USD)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.x = element_text(angle = 30, hjust = 1))
+```
+Dijagram jasno prikazuje sezonske fluktuacije sa strmim usponom krajem godine, potvrđujući da vremenske komponente imaju visoku prediktivnu vrednost za modelovanje.
+
+
+## 5.7 Analiza heteroskedastičnosti
+
+U ovom delu testiramo prisustvo heteroskedastičnosti (nekonstantne varijanse reziduala) u linearnim modelima i upoređujemo efekte korišćenja originalne (`sales_revenue_usd`) i logaritmovane (`log_revenue`) skale ciljne promenljive.
+
+### 5.7.1 Residual vs Fitted dijagrami (Originalna vs Log skala)
+
+```{r}
+model_orig = lm(sales_revenue_usd ~ total_ad_spend + website_traffic + customer_satisfaction_score, data = dataset_clean)
+model_log = lm(log_revenue ~ total_ad_spend + website_traffic + customer_satisfaction_score, data = dataset_clean)
+
+# Vizuelno poređenje Residual vs Fitted plot-ova
+par(mfrow = c(1, 2))
+plot(model_orig, which = 1)
+plot(model_log, which = 1)
+par(mfrow = c(1, 1))
+```
+### 5.7.2 Breusch-Pagan test heteroskedastičnosti
+
+Formalnu potvrdu prisustva heteroskedastičnosti dobijamo primenom Breusch-Pagan testa za oba modela.
+
+```{r}
+bp_orig = bptest(model_orig)
+bp_log = bptest(model_log)
+
+print("--- Breusch-Pagan test: Originalna skala ---")
+print(bp_orig)
+
+print("--- Breusch-Pagan test: Logaritamska skala ---")
+print(bp_log)
+```
+Levi grafik na originalnoj skali pokazuje klasičan levasti oblik i veliku heteroskedastičnost 
+(BP = 13259, p < 2.2e-16), što potvrđuje da greške rastu zajedno sa prihodima. 
+
+Desni grafik pokazuje da je log-transformacija uspela znatno da stabilizuje varijansu i ravnomernije rasporedi reziduale. Iako Breusch-Pagan test i tu ostaje statistički značajan (BP = 7681), to je normalno za ovako ogroman uzorak od 60.000 instanci gde i sitna odstupanja postaju vidljiva. 
