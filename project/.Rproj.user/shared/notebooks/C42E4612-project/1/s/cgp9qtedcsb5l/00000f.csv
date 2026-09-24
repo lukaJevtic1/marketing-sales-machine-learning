@@ -1,1 +1,0 @@
-"0","dataset$is_weekend =ifelse(dataset$day_of_week %in% c(""Saturday"", ""Sunday""), 1, 0)"

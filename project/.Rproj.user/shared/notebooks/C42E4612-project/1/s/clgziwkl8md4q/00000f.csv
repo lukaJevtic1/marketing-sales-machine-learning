@@ -1,1 +1,0 @@
-"0","dataset$online_share = ifelse(dataset$total_ad_spend > 0, dataset$ad_spend_online_usd / dataset$total_ad_spend, 0)"

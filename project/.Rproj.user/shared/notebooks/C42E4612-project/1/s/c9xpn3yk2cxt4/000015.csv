@@ -1,5 +1,0 @@
-"0","ggplot(dataset, aes(x = marketing_budget_usd)) +"
-"0","  geom_density(fill = ""#27AE60"", color = ""#2C3E50"", alpha = 0.7) +"
-"0","  theme_minimal() +"
-"0","  labs(title = ""Density Plot: Marketing Budget"", x = ""Marketing Budget (USD)"", y = ""Density"") +"
-"0","  theme(plot.title = element_text(hjust = 0.5, face = ""bold""))"

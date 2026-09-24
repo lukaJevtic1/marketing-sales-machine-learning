@@ -1,1 +1,0 @@
-"0","dataset$spend_per_promotion =ifelse(dataset$num_promotions > 0, dataset$total_ad_spend / dataset$num_promotions, dataset$total_ad_spend)"

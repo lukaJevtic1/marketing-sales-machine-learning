@@ -1,1 +1,0 @@
-"0","dataset$budget_utilization = ifelse(dataset$marketing_budget_usd > 0, dataset$total_ad_spend / dataset$marketing_budget_usd, 0)"

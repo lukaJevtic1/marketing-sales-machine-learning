@@ -1,6 +1,0 @@
-"0","ggplot(dataset, aes(x = """", y = sales_revenue_usd)) +"
-"0","  geom_boxplot(fill = ""#89CFF0"", color = ""#2C3E50"", outlier.color = ""#E74C3C"", outlier.size = 1.5, outlier.shape = 16) +"
-"0","  theme_minimal() +"
-"0","  labs(title = ""Boxplot - Sales Revenue"", x = ""Sales Revenue"", y = ""USD"") +"
-"0","  theme(plot.title = element_text(hjust = 0.5, face = ""bold""),"
-"0","        axis.text.x = element_blank(), axis.ticks.x = element_blank())"

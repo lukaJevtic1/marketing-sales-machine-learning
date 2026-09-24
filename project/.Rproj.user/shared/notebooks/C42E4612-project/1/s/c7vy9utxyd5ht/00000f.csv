@@ -1,8 +1,0 @@
-"0","dataset$season = case_when("
-"0","  dataset$month %in% c(""12"", ""01"", ""02"") ~ ""Zima"","
-"0","  dataset$month %in% c(""03"", ""04"", ""05"") ~ ""Proleće"","
-"0","  dataset$month %in% c(""06"", ""07"", ""08"") ~ ""Leto"","
-"0","  dataset$month %in% c(""09"", ""10"", ""11"") ~ ""Jesen"","
-"0","  TRUE ~ ""Nepoznato"""
-"0",")"
-"0",""

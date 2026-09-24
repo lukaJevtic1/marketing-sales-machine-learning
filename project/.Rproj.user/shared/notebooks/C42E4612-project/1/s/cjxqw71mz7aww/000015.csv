@@ -1,5 +1,0 @@
-"0","ggplot(dataset, aes(x = website_traffic)) +"
-"0","  geom_density(fill = ""#F39C12"", color = ""#2C3E50"", alpha = 0.7) +"
-"0","  theme_minimal() +"
-"0","  labs(title = ""Density Plot: Website Traffic"", x = ""Website Traffic (Visits)"", y = ""Density"") +"
-"0","  theme(plot.title = element_text(hjust = 0.5, face = ""bold""))"
