@@ -1,0 +1,1 @@
+"0","dataset$season_product = as.factor(paste(dataset$season, dataset$product_category, sep = ""_""))"

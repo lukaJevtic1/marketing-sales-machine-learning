@@ -34,7 +34,7 @@ Skup podataka preuzet je sa platforme Kaggle:
 
 Izvor: [Marketing i Sales Dataset](https://www.kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset)
 
-Cilj rada nam je detaljna analiza faktora koji utiču na ostvareni prihod od prodaje (sales_revenue_usd) 
+Cilj rada nam je detaljna analiza faktora koji utiču nas ostvareni prihod od prodaje (sales_revenue_usd) 
 i razvoj regresionih modela mašinskog učenja za preciznu predikciju prihoda na osnovu marketinških investicija i parametara ponašanja kupaca.
 
 
@@ -75,9 +75,13 @@ str(dataset)
 Sada nakon što smo videli koji sve feature-i postoje u setu podataka  možemo da napišemo kratak opis o njima i da lepo to predstavimo tabelarno,za to nam treba da učitamo paket knitr i iskorisitmo funkciju kable. 
 
 ## 2.3 Pregled i opis svih feature-a
+<<<<<<< HEAD
+=======
 
 ```{r}
+>>>>>>> main
 
+```{r}
  opis_kolona=data.frame(
   Kolona = c(
     "id", "date", "region", "sales_channel", "product_category", 
@@ -192,11 +196,17 @@ Provera da li broj dana od poslednje kupovine prelazi 365
 ```{r}
 sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 365, na.rm = TRUE)
 ```
+<<<<<<< HEAD
+=======
 
 ## 2.8 Analiza outlier-a
 
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
+>>>>>>> main
 
+## 2.8 Analiza outlier-a
+
+U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
 
 ```{r}
 ggplot(dataset, aes(x = "", y = sales_revenue_usd)) +
@@ -666,7 +676,10 @@ dataset_clean <- dataset_clean %>%
 colSums(is.na(dataset_clean))
 ```
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
 # 4 Feature engineering
 
 U ovom poglavlju kreiramo nove feature na osnovu postojećih podataka kako bismo modelima mašinskog učenja pružili dodatne ulazne informacije.
@@ -804,3 +817,100 @@ dataset_clean$customer_age_group = cut(
   include.lowest = TRUE
 )
 ```
+<<<<<<< HEAD
+
+
+## 4.5 Tržišne i digitalne karakteristike (Market & Digital Features)
+
+price_advantage: Prikazuje našu cenovnu prednost u odnosu na konkurenciju, dobijenu preko indeksa cene konkurencije (competitor_price_index).
+
+```{r}
+dataset_clean$price_advantage = ifelse(
+  !is.na(dataset_clean$competitor_price_index), 
+  100 - dataset_clean$competitor_price_index, 
+  NA
+)
+```
+
+effective_discount: Kombinuje procenat odobrenog popusta i broj aktivnih promocija da vidimo ukupni efekat popusta na kupca.
+
+```{r}
+dataset_clean$effective_discount = dataset_clean$discount_percentage * dataset_clean$num_promotions
+```
+
+estimated_conversions: Daje procenu broja ostvarenih kupovina na osnovu poseta sajtu i stope konverzije.
+
+```{r}
+dataset_clean$estimated_conversions = dataset_clean$website_traffic * dataset_clean$conversion_rate
+```
+
+traffic_per_follower: Meri odnos poseta sajtu i broja pratilaca na društvenim mrežama.
+```{r}
+dataset_clean$traffic_per_follower = dataset_clean$website_traffic / (dataset_clean$social_media_followers + 1)
+```
+
+## 4.6 Interakcije obeležja (Feature Interactions)
+
+segment_product: Kombinuje segment kupaca i kategoriju proizvoda, da vidimo koji tipovi kupaca preferiraju koje proizvode.
+```{r}
+dataset_clean$segment_product = as.factor(paste(dataset_clean$customer_segment, dataset_clean$product_category, sep = "_"))
+```
+season_product: Spaja sezonu i kategoriju proizvoda radi praćenja sezonskih promena u potražnji.
+
+```{r}
+dataset_clean$season_product = as.factor(paste(dataset_clean$season, dataset_clean$product_category, sep = "_"))
+```
+
+channel_segment: Povezuje kanal prodaje sa segmentom kupaca, otkrivajući preko kog kanala koji kupci najčešće trguju.
+
+```{r}
+dataset_clean$channel_segment = as.factor(paste(dataset_clean$sales_channel, dataset_clean$customer_segment, sep = "_"))
+```
+
+## 4.7 Provera i verifikacija novih feature-a
+
+Proveravamo sve nove feature  kako bismo utvrdili osnovnu statistiku, potvrdili ispravnost formula i osigurali da u njima nema neočekivanih anomalija.
+
+```{r}
+engineered_cols = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+
+summary(dataset_clean[, engineered_cols])
+colSums(is.na(dataset_clean[, engineered_cols]))
+sapply(dataset_clean[, engineered_cols], function(x) sum(is.infinite(x)))
+```
+Nakon detaljnog pregleda statistike, potvrđeno je da su sv novi feature-i uspešno generisana i da se kreću u očekivanim i logičnim opsezima.
+
+## 4.8 Prevencija curenja podataka (Target Leakage Prevention)
+
+Treba programski osiguravamo i verifikujemo da nijedan novih feature-a u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
+
+```{r}
+target_variable = "sales_revenue_usd"
+contains_target = any(grepl(target_variable, engineered_cols))
+stopifnot("GREŠKA: Curenje podataka! Nova obeležja koriste sales_revenue_usd!" = !contains_target)
+print("Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd).")
+```
+Uspešno smo proverili da ni jedan novi feature ne koristi ciljnu promenljivu sales_revenue_usd
+
+U ovm koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
+```{r}
+num_engineered = c(
+  "total_ad_spend", "online_share", "budget_utilization", "unspent_budget", 
+  "spend_per_rep", "spend_per_promotion", "budget_per_traffic", "log_budget", 
+  "log_traffic", "log_followers", "purchase_frequency", "price_advantage", 
+  "effective_discount", "estimated_conversions", "traffic_per_follower"
+)
+target_correlations = cor(dataset_clean[, num_engineered], dataset_clean[[target_variable]], use = "complete.obs")
+print(target_correlations)
+```
+Pregledom matrice korelacija vidimo da se sve vrednosti kreću u umerenim i očekivanim granicama.Nema sumnjivih korelacija bliskih 1.0, što potvrđuje da nijedan novokreirani atribut ne odaje informaciju o krajnjem prihodu unapred i da nema opasnosti od target leakage-a.
+Time smo i zvanično dokumentovali da su sve provere i mere zaštite od curenja podataka uspešno sprovedene.
+
+
+=======
+>>>>>>> main

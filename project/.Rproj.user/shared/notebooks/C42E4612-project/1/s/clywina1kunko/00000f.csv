@@ -1,0 +1,8 @@
+"0","target_variable = ""sales_revenue_usd"""
+"0","contains_target = any(grepl(target_variable, engineered_cols))"
+"0","stopifnot(""GREŠKA: Curenje podataka! Nova obeležja koriste sales_revenue_usd!"" = !contains_target)"
+"0","print(""Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd)."")"
+"1","[1]"
+"1"," ""Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenljivu (sales_revenue_usd)."""
+"1","
+"

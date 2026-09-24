@@ -1,0 +1,1 @@
+"0","dataset$traffic_per_follower = dataset$website_traffic / (dataset$social_media_followers + 1)"
