@@ -5,7 +5,6 @@ output: html_notebook
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
 library(mice)
 library(tidyverse)
 library(knitr)
@@ -14,6 +13,10 @@ library(car)
 library(randomForest)
 library(glmnet)
 library(tidymodels)
+library(broom)
+library(rpart.plot)
+library(vip)
+library(xgboost)
 ```
 
 # Analiza skupa podataka Marketing & Sales
@@ -38,7 +41,7 @@ Skup podataka preuzet je sa platforme Kaggle:
 
 Izvor: [Marketing i Sales Dataset](https://www.kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset)
 
-Cilj rada nam je detaljna analiza faktora koji utiču nas ostvareni prihod od prodaje (sales_revenue_usd) 
+Cilj rada nam je detaljna analiza faktora koji utiču na ostvareni prihod od prodaje (sales_revenue_usd) 
 i razvoj regresionih modela mašinskog učenja za preciznu predikciju prihoda na osnovu marketinških investicija i parametara ponašanja kupaca.
 
 
@@ -80,6 +83,7 @@ str(dataset)
 Sada nakon što smo videli koji sve feature-i postoje u setu podataka  možemo da napišemo kratak opis o njima i da lepo to predstavimo tabelarno,za to nam treba da učitamo paket knitr i iskorisitmo funkciju kable. 
 
 ## 2.3 Pregled i opis svih feature-a
+
 ```{r}
 
  opis_kolona=data.frame(
@@ -199,6 +203,7 @@ sum(dataset$days_since_last_purchase < 0 | dataset$days_since_last_purchase > 36
 
 U ovom koraku ćemo identifikovati potencijalne outlier-e za ključne numeričke promenljive u setu podataka (prihode, marketing budžet, web saobraćaj i društvene mreže) pomoću importovanja tidiverse paketa i njegovog korišćenja za iscrtavnja grafika:
 
+
 ```{r}
 ggplot(dataset, aes(x = "", y = sales_revenue_usd)) +
   geom_boxplot(fill = "#89CFF0", color = "#2C3E50", outlier.color = "#E74C3C", outlier.size = 1.5, outlier.shape = 16) +
@@ -288,7 +293,7 @@ ggplot(dataset, aes(x = social_media_followers)) +
 kod broja pratilaca na društvenim mrežama kriva gustine je glatka i prirodna, što potvrđuje konzistentnost i ovog dela skupa podataka.
 
 
-Pregled distribucija pokazuje da podaci deluju sasvim prirodno i realno, bez veštačkih šablona ili čudnih prekida. Kada se sve sabere sa prethodnim proverama, set podataka je čist, pouzdan i spreman za dalju analizu
+Pregled distribucija pokazuje da podaci deluju sasvim prirodno i realno, bez veštačkih šablona ili čudnih prekida. Kada se sve sabere sa prethodnim proverama, set podataka je čist, pouzdan i spreman za dalju analizu.
 
 
 # 3 Analiza nedostajućih vrednosti
@@ -569,10 +574,17 @@ ggplot(
   target_plot_data_long,
   aes(
     x = Status,
-    y = sales_revenue_usd
+    y = sales_revenue_usd,
+    fill = Status # Opciono: automatski boji kutije po statusima, ili možeš staviti fill unutar geom_boxplot() za fiksnu boju
   )
 ) +
-  geom_boxplot() +
+  geom_boxplot(
+    color = "#2C3E50", 
+    outlier.color = "#E74C3C", 
+    outlier.size = 1.5, 
+    outlier.shape = 16,
+    alpha = 0.8
+  ) +
   scale_y_log10() +
   facet_wrap(~ Missing_variable) +
   labs(
@@ -580,7 +592,11 @@ ggplot(
     x = "Status vrednosti",
     y = "Sales revenue (log skala)"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "none" # Uklanja legendu ako koristiš fill = Status, pošto su labele već na x-osi
+  )
 ```
 
 Analizom boxplot dijagrama za sve četiri posmatrane varijable (customer_satisfaction_score, days_since_last_purchase, discount_percentage i email_open_rate) uočava se da ne postoji značajna razlika u distribuciji prihoda (Sales revenue) između grupa sa prisutnim (Available) i nedostajućim (Missing) vrednostima.   Medijane i interkvartilni rasponi prihoda su gotovo identični u obe grupe za svaku varijablu. Veći broj ekstremnih vrednosti u kategoriji Available posledica je znatno većeg uzorka. Ovi rezultati ukazuju na to da prisustvo nedostajućih vrednosti nije uslovljeno visinom ostvarenog prihoda.
@@ -952,28 +968,28 @@ Histogram pratioci na društvenim mrežama ukazuje na to da broj pratilaca pokaz
 
 ```{r}
 ggplot(dataset_clean, aes(x = region, fill = region)) +
-  geom_bar(color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  geom_bar( alpha = 0.8, show.legend = TRUE) +
   theme_minimal() +
-  labs(title = "Stubasti dijagram: Zastupljenost po regionima", 
+  labs(title = "Bar plot: Zastupljenost po regionima", 
        x = "Region", 
        y = "Broj transakcija") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
-Grafik pokazuje određene varijacije u broju transakcija po regionima, ali ne i ekstremne razlike. Dok gradovi poput Kaira i Rijada beleže veći obim transakcija, ostali regioni ostaju dovoljno zastupljeni da se ne pojavljuje ozbiljan disbalans. Ova neujednačena distribucija ukazala je na ograničenu prediktivnu moć regiona u kasnijim analizama, pa je on kasnije isključen iz konačnog skupa obeležja.
+Grafik pokazuje značajne varijacije u broju transakcija po regionima. Dok gradovi poput Kaira i Rijada beleže najveći obim transakcija, drugi regioni poput Amana i Kasablanke imaju znatno manju zastupljenost. Ova neujednačena distribucija objašnjava zašto se regija u kasnijim statističkim analizama pokazala kao slab prediktor i s pravom bila isključena iz konačnog skupa feature-a.
 
 ### 5.1.5 Kategorije proizvoda (product_category)
 
 ```{r}
 ggplot(dataset_clean, aes(x = product_category, fill = product_category)) +
-  geom_bar(color = "#2C3E50", alpha = 0.8, show.legend = FALSE) +
+  geom_bar(alpha = 0.8, show.legend = TRUE) +
   theme_minimal() +
-  labs(title = "Stubasti dijagram: Kategorije proizvoda", 
+  labs(title = "Bar plot: Kategorije proizvoda", 
        x = "Kategorija proizvoda", 
        y = "Broj transakcija") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         axis.text.x = element_text(angle = 30, hjust = 1))
 ```
-Kategorije proizvoda su korektno i relativno ravnomerno zastupljene u uzorku. Nema ekstremnih oscilacija niti dominacije jedne kategorije na račun ostalih, što obezbeđuje stabilnu osnovu za dalju analizu i modelovanje.
+Kategorije proizvoda su ravnomerno zastupljene u uzorku. Nema ekstremnih oscilacija niti dominacije jedne kategorije nauštrb ostalih, što obezbeđuje kvalitetnu osnovu i stabilnost podataka za dalje modelovanje i analizu uticaja pojedinačnih kategorija na prihode.
 
 ## 5.2 Analiza i transformacija ciljne promenljive (sales_revenue_usd)
 
@@ -1054,6 +1070,7 @@ print(paste("Procenat outlier-a u ukupnom skupu:", round((length(outliers_revenu
 Formula nam je izbacila gornju granicu na 13.612,81 USD, a sve preko toga je označila kao autlajer. Tako smo dobili 3.816 takvih redova, što mu dođe oko 6.36% celog skupa.
 
 Iako deluje kao veliki procenat, u svetu prodaje i marketinga skroz je normalno da neke kampanje iskoče i donesu mnogo veće pare od proseka. To nisu nikakve greške, već naši najuspešniji rezultati. Upravo zato ne diramo i ne brišemo ove outliere — da ih sklonimo, osiromašili bismo podatke i model ne bi imao na čemu da uči šta zapravo donosi najveći profit.
+
 ## 5.4 Korelaciona analiza obeležja
 
 U ovom delu sprovodimo ispitivanje međusobne povezanosti numeričkih atributa. Pošto pojedine promenljive u našem skupu podataka pokazuju izraženu asimetriju i prisustvo ekstremnih vrednosti, koristimo Spearman-ov koeficijent korelacije, pošto on meri monotonu povezanost i otporniji je na outlier-e u odnosu na standardni Pearson-ov koeficijent.
@@ -1185,11 +1202,6 @@ Statistička značajnost: Rezultati ANOVA testa F=823 i Kruskal-Wallis testa X^2
 
 Izračunati Eta-squared od 0.052 pokazuje da kategorija proizvoda objašnjava oko 5.2% varijacije prihoda, što predstavlja merljiv i opravdan uticaj za uključivanje u prediktivne modele.
 
-
-```{r}
-names(dataset_clean)
-```
-
 ## 5.6 Vremenska analiza i sezonski obrasci
 
 U ovom delu analiziramo kretanje ostvarenog prihoda kroz vreme (po godinama, kvartalima i mesecima) koristeći već pripremljene vremenske atribute u skupu podataka, kako bismo identifikovali trendove i uticaj Q4 efekta.
@@ -1288,7 +1300,6 @@ Levi grafik na originalnoj skali pokazuje klasičan levasti oblik i veliku heter
 (BP = 13259, p < 2.2e-16), što potvrđuje da greške rastu zajedno sa prihodima. 
 
 Desni grafik pokazuje da je log-transformacija uspela znatno da stabilizuje varijansu i ravnomernije rasporedi reziduale. Iako Breusch-Pagan test i tu ostaje statistički značajan (BP = 7681), to je normalno za ovako ogroman uzorak od 60.000 instanci gde i sitna odstupanja postaju vidljiva. 
-
 
 ```{r}
 names(dataset_clean)
@@ -1491,7 +1502,7 @@ set.seed(42)
 
 rf_model = randomForest(log_revenue ~ ., 
                         data = dataset_clean[, c(final_features, "log_revenue")], 
-                        ntree = 300,
+                        ntree = 200,
                         importance = TRUE)
 
 rf_imp = importance(rf_model, type = 1)
@@ -1559,37 +1570,28 @@ print(paste("Ukupan broj feature-a u konačnom skupu:", length(final_model_featu
 ```
 Kombinovanjem statističkih metoda, Random Forest-a i Lasso regularizacije formiran je optimalan skup od 8 feature-a (4 numerička i 4 kategorička). Ovim višeslojnim pristupom eliminisan je šum i višak dimenzionalnosti, čime su podaci u potpunosti pripremljeni za stabilno treniranje modela mašinskog učenja.
 
+# 7 Machine learning
 
-
-# 7 Priprema podataka za modelovanje
+## 7.1 Priprema podataka za modelovanje
 
 U ovom poglavlju pripremamo podatke za sve modele mašinskog učenja. Ista podela podataka, preprocessing pipeline i cross-validacija koriste se u svim narednim modelima, čime se obezbeđuje fer poređenje njihovih performansi.
 
-```{r setup-libraries, message=FALSE, warning=FALSE}
-# Učitavanje svih potrebnih biblioteka za rad
-library(tidymodels)
-library(tidyverse)
-library(broom)
-library(lmtest)
-library(rpart.plot)
-library(vip)
-```
 
-## 7.1 Train/Test Split
+### 7.1.1 Train/Test Split
 
 Radi reproduktivnosti rezultata postavljamo generator slučajnih brojeva (`set.seed`) i delimo podatke u odnosu 80:20.
 
 ```{r train-test-split}
 set.seed(123)
 
-data_split <- initial_split(
+data_split = initial_split(
   dataset_clean,
   prop = 0.80,
   strata = log_revenue
 )
 
-train_data <- training(data_split)
-test_data  <- testing(data_split)
+train_data = training(data_split)
+test_data  = testing(data_split)
 ```
 
 Stratifikacija po `log_revenue` čuva sličnu raspodelu ciljne promenljive u oba skupa.
@@ -1627,9 +1629,7 @@ bind_rows(
 
 Slične vrednosti potvrđuju uspešnu podelu podataka.
 
----
-
-## 7.2 Preprocessing pipeline
+### 7.1.2 Preprocessing pipeline
 
 Da bismo sprečili *data leakage*, sve transformacije uče se isključivo na trening skupu.
 
@@ -1641,7 +1641,7 @@ Pipeline obuhvata:
 - Normalizaciju numeričkih promenljivih.
 
 ```{r definisanje-recepta}
-recipe_model <- recipe(
+recipe_model = recipe(
   as.formula(
     paste("log_revenue ~", paste(final_model_features, collapse = " + "))
   ),
@@ -1657,30 +1657,28 @@ recipe_model <- recipe(
 **Priprema recepta i primena na skupove:**
 
 ```{r primena-recepta}
-prep_recipe <- prep(recipe_model)
+prep_recipe = prep(recipe_model)
 
-train_processed <- bake(prep_recipe, train_data)
-test_processed  <- bake(prep_recipe, test_data)
+train_processed = bake(prep_recipe, train_data)
+test_processed  = bake(prep_recipe, test_data)
 ```
 
 Na ovaj način svi modeli koriste identične ulazne podatke.
 
----
-
-## 7.3 Petostruka Cross-validation
+### 7.1.3 Petostruka Cross-validation
 
 Radi stabilnije procene performansi koristi se 5-fold cross-validation.
 
 ```{r cv-setup}
 set.seed(123)
 
-cv_folds <- vfold_cv(
+cv_folds = vfold_cv(
   train_data,
   v = 5,
   strata = log_revenue
 )
 
-reg_metrics <- metric_set(
+reg_metrics = metric_set(
   mae,
   rmse,
   rsq
@@ -1692,16 +1690,15 @@ Za svaki model beleže se:
 - RMSE
 - $R^2$ (srednja vrednost i standardna devijacija)
 
----
 
-## 7.4 Bazni model
+### 7.1.4 Bazni model
 
 Bazni model uvek predviđa prosečnu vrednost ciljne promenljive.
 
 ```{r baseline-model}
-baseline_prediction <- mean(train_data$log_revenue, na.rm = TRUE)
+baseline_prediction = mean(train_data$log_revenue, na.rm = TRUE)
 
-baseline_results <- tibble(
+baseline_results = tibble(
   truth    = test_data$log_revenue,
   estimate = baseline_prediction
 )
@@ -1715,23 +1712,22 @@ reg_metrics(
 
 Ovaj rezultat predstavlja referentnu tačku koju svi naredni modeli treba da nadmaše.
 
----
 
-# 8 Linearna regresija
+## 7.2 Linearna regresija
 
 Linearna regresija predstavlja osnovni model sa kojim ćemo uporediti naprednije algoritme.
 
-## 8.1 Treniranje modela
+### 7.2.1 Treniranje modela
 
 ```{r lr-setup-and-cv}
-lr_model <- linear_reg() %>%
+lr_model = linear_reg() %>%
   set_engine("lm")
 
-lr_workflow <- workflow() %>%
+lr_workflow = workflow() %>%
   add_recipe(recipe_model) %>%
   add_model(lr_model)
 
-cv_lr <- fit_resamples(
+cv_lr = fit_resamples(
   lr_workflow,
   resamples = cv_folds,
   metrics   = reg_metrics
@@ -1740,12 +1736,12 @@ cv_lr <- fit_resamples(
 collect_metrics(cv_lr)
 ```
 
-## 8.2 Konačna evaluacija
+### 7.2.2 Konačna evaluacija
 
 ```{r lr-test-eval}
-final_lr <- fit(lr_workflow, data = train_data)
+final_lr = fit(lr_workflow, data = train_data)
 
-pred_lr <- predict(final_lr, test_data) %>%
+pred_lr = predict(final_lr, test_data) %>%
   bind_cols(test_data %>% select(log_revenue))
 
 reg_metrics(
@@ -1755,7 +1751,7 @@ reg_metrics(
 )
 ```
 
-## 8.3 Interpretacija koeficijenata
+### 7.2.3 Interpretacija koeficijenata
 
 ```{r lr-koeficijenti}
 final_lr %>%
@@ -1765,52 +1761,68 @@ final_lr %>%
 
 Pozitivni koeficijenti ukazuju na rast očekivanog prihoda, dok negativni označavaju njegovo smanjenje.
 
-## 8.4 Provera pretpostavki
+### 7.2.4 Provera pretpostavki
 
 ```{r lr-dijagnostika, fig.width=7, fig.height=5}
-lm_fit <- final_lr %>%
+lm_fit = final_lr %>%
   extract_fit_parsnip() %>%
   pluck("fit")
 
 plot(lm_fit, which = 1)
-plot(lm_fit, which = 2)
-plot(lm_fit, which = 3)
-plot(lm_fit, which = 4)
 
+
+```
+
+```{r}
+plot(lm_fit, which = 2)
+```
+
+```{r}
+plot(lm_fit, which = 3)
+```
+
+
+```{r}
+plot(lm_fit, which = 4)
+```
+
+
+```{r}
 bptest(lm_fit)
 ```
 
----
 
-# 9 Ridge i Lasso regresija
+
+
+## 7.3 Ridge i Lasso regresija
 
 Regularizacija omogućava smanjenje prevelike složenosti modela:
 - **Ridge** koristi L2 penalizaciju.
 - **Lasso** koristi L1 penalizaciju i može potpuno eliminisati pojedine prediktore.
 
-## 9.1 Specifikacija modela
+### 7.3.1 Specifikacija modela
 
 ```{r regularizovani-spec}
-ridge_spec <- linear_reg(penalty = tune(), mixture = 0) %>%
+ridge_spec = linear_reg(penalty = tune(), mixture = 0) %>%
   set_engine("glmnet")
 
-lasso_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
+lasso_spec = linear_reg(penalty = tune(), mixture = 1) %>%
   set_engine("glmnet")
 ```
 
-## 9.2 Cross-validation za lambda
+### 7.3.2 Cross-validation za lambda
 
 ```{r regularizacija-tuning}
-lambda_grid <- grid_regular(penalty(), levels = 30)
+lambda_grid = grid_regular(penalty(), levels = 30)
 
-ridge_res <- tune_grid(
+ridge_res = tune_grid(
   workflow() %>% add_recipe(recipe_model) %>% add_model(ridge_spec),
   resamples = cv_folds,
   grid      = lambda_grid,
   metrics   = reg_metrics
 )
 
-lasso_res <- tune_grid(
+lasso_res = tune_grid(
   workflow() %>% add_recipe(recipe_model) %>% add_model(lasso_spec),
   resamples = cv_folds,
   grid      = lambda_grid,
@@ -1825,7 +1837,7 @@ select_best(ridge_res, metric = "rmse")
 select_best(lasso_res, metric = "rmse")
 ```
 
-## 9.3 Poređenje performansi
+### 7.3.3 Poređenje performansi
 
 ```{r metrics-regularizovani}
 collect_metrics(ridge_res)
@@ -1834,16 +1846,15 @@ collect_metrics(lasso_res)
 
 Upoređujemo MAE, RMSE i $R^2$ sa linearnom regresijom.
 
----
 
-# 10 Decision Tree
+## 7.4 Decision Tree
 
 Decision Tree omogućava modelovanje nelinearnih odnosa i jednostavnu interpretaciju odluka.
 
-## 10.1 Treniranje i podešavanje parametara
+### 7.4.1 Treniranje i podešavanje parametara
 
 ```{r tree-tuning}
-tree_spec <- decision_tree(
+tree_spec = decision_tree(
   cost_complexity = tune(),
   tree_depth      = tune(),
   min_n           = tune()
@@ -1851,14 +1862,14 @@ tree_spec <- decision_tree(
   set_engine("rpart") %>%
   set_mode("regression")
 
-tree_grid <- grid_regular(
+tree_grid = grid_regular(
   cost_complexity(),
   tree_depth(),
   min_n(),
   levels = 3
 )
 
-tree_res <- tune_grid(
+tree_res = tune_grid(
   workflow() %>% add_recipe(recipe_model) %>% add_model(tree_spec),
   resamples = cv_folds,
   grid      = tree_grid,
@@ -1866,15 +1877,15 @@ tree_res <- tune_grid(
 )
 ```
 
-## 10.2 Vizuelizacija stabla
+## 7.4.2 Vizuelizacija stabla
 
 ```{r tree-viz, fig.width=10, fig.height=6}
-best_tree <- finalize_workflow(
+best_tree=finalize_workflow(
   workflow() %>% add_recipe(recipe_model) %>% add_model(tree_spec),
   select_best(tree_res, metric = "rmse")
 )
 
-tree_fit <- fit(best_tree, train_data)
+tree_fit = fit(best_tree, train_data)
 
 tree_fit %>%
   extract_fit_parsnip() %>%
@@ -1882,10 +1893,10 @@ tree_fit %>%
   rpart.plot()
 ```
 
-## 10.3 Evaluacija
+### 7.4.3 Evaluacija
 
 ```{r tree-eval}
-pred_tree <- predict(tree_fit, test_data) %>%
+pred_tree = predict(tree_fit, test_data) %>%
   bind_cols(test_data %>% select(log_revenue))
 
 reg_metrics(
@@ -1895,31 +1906,29 @@ reg_metrics(
 )
 ```
 
----
 
-# 11 Random Forest
+## 7.5 Random Forest
 
 Random Forest kombinuje veliki broj stabala kako bi povećao stabilnost i tačnost predikcija.
 
-## 11.1 Treniranje i podešavanje parametara
+### 7.5.1 Treniranje i podešavanje parametara
 
 ```{r rf-tuning}
-rf_spec <- rand_forest(
-  trees = tune(),
+rf_spec = rand_forest(
+  trees = 200,          
   mtry  = tune(),
   min_n = tune()
 ) %>%
   set_engine("ranger", importance = "permutation") %>%
   set_mode("regression")
 
-rf_grid <- grid_regular(
-  trees(range = c(200L, 600L)),
-  mtry(range = c(2L, 10L)),
-  min_n(),
-  levels = 3
-)
 
-rf_res <- tune_grid(
+rf_grid = grid_regular(
+  mtry(range = c(2L, 8L)),
+  min_n(),
+  levels = 2
+)
+rf_res = tune_grid(
   workflow() %>% add_recipe(recipe_model) %>% add_model(rf_spec),
   resamples = cv_folds,
   grid      = rf_grid,
@@ -1929,50 +1938,50 @@ rf_res <- tune_grid(
 collect_metrics(rf_res)
 ```
 
-## 11.2 Važnost feature-a
+### 7.5.2 Važnost feature-a
 
 ```{r rf-vip, fig.width=8, fig.height=5}
-best_rf <- finalize_workflow(
+best_rf = finalize_workflow(
   workflow() %>% add_recipe(recipe_model) %>% add_model(rf_spec),
   select_best(rf_res, metric = "rmse")
 )
 
-rf_fit <- fit(best_rf, train_data)
+rf_fit = fit(best_rf, train_data)
 
 vip::vip(
   rf_fit %>% extract_fit_parsnip() %>% pluck("fit")
 )
 ```
 
----
 
-# 12 Gradient Boosting
+## 7.6 Gradient Boosting
 
 Gradient Boosting gradi stabla sekvencijalno tako da svako naredno ispravlja greške prethodnog.
 
-## 12.1 Treniranje XGBoost modela
+## 7.6.1 Treniranje XGBoost modela
 
 ```{r xgb-tuning}
-xgb_spec <- boost_tree(
-  trees          = tune(),
+xgb_spec = boost_tree(
+  trees          = 200,
   tree_depth     = tune(),
   learn_rate     = tune(),
   loss_reduction = tune(),
-  sample_size    = tune()
+  sample_size    = tune()   # Koristi sample_size
 ) %>%
   set_engine("xgboost") %>%
   set_mode("regression")
 
-xgb_grid <- grid_latin_hypercube(
-  trees(),
+
+xgb_grid = grid_latin_hypercube(
   tree_depth(),
   learn_rate(),
   loss_reduction(),
-  sample_prop(),
+  sample_size = sample_prop(), # Povezujemo sample_size sa sample_prop()
   size = 20
 )
 
-xgb_res <- tune_grid(
+
+xgb_res = tune_grid(
   workflow() %>% add_recipe(recipe_model) %>% add_model(xgb_spec),
   resamples = cv_folds,
   grid      = xgb_grid,
@@ -1982,17 +1991,18 @@ xgb_res <- tune_grid(
 collect_metrics(xgb_res)
 ```
 
-## 12.2 Konačna evaluacija
+
+### 7.6.2 Konačna evaluacija
 
 ```{r xgb-eval}
-best_xgb <- finalize_workflow(
+best_xgb = finalize_workflow(
   workflow() %>% add_recipe(recipe_model) %>% add_model(xgb_spec),
   select_best(xgb_res, metric = "rmse")
 )
 
-xgb_fit <- fit(best_xgb, train_data)
+xgb_fit = fit(best_xgb, train_data)
 
-pred_xgb <- predict(xgb_fit, test_data) %>%
+pred_xgb = predict(xgb_fit, test_data) %>%
   bind_cols(test_data %>% select(log_revenue))
 
 reg_metrics(
@@ -2002,47 +2012,45 @@ reg_metrics(
 )
 ```
 
----
-
-## 12.5 Poređenje svih modela
+### 7.6.3 Poređenje svih modela
 
 U nastavku je prikazan zbirni kod za kreiranje uporedne tabele performansi svih testiranih modela na test skupu:
 
 ```{r komparativna-tabela-modela}
 # Prikupljanje predikcija za ostale modele
-pred_baseline <- tibble(
+pred_baseline = tibble(
   .pred = baseline_prediction,
   log_revenue = test_data$log_revenue
 )
 
 # Ridge predikcija
-ridge_fit <- fit(
+ridge_fit = fit(
   finalize_workflow(
     workflow() %>% add_recipe(recipe_model) %>% add_model(ridge_spec),
     select_best(ridge_res, metric = "rmse")
   ),
   data = train_data
 )
-pred_ridge <- predict(ridge_fit, test_data) %>%
+pred_ridge = predict(ridge_fit, test_data) %>%
   bind_cols(test_data %>% select(log_revenue))
 
 # Lasso predikcija
-lasso_fit <- fit(
+lasso_fit = fit(
   finalize_workflow(
     workflow() %>% add_recipe(recipe_model) %>% add_model(lasso_spec),
     select_best(lasso_res, metric = "rmse")
   ),
   data = train_data
 )
-pred_lasso <- predict(lasso_fit, test_data) %>%
+pred_lasso = predict(lasso_fit, test_data) %>%
   bind_cols(test_data %>% select(log_revenue))
 
 # Random Forest predikcija
-pred_rf <- predict(rf_fit, test_data) %>%
+pred_rf = predict(rf_fit, test_data) %>%
   bind_cols(test_data %>% select(log_revenue))
 
 # Formiranje jedinstvene tabele sa metrikama
-model_comparison <- bind_rows(
+model_comparison = bind_rows(
   reg_metrics(pred_baseline, truth = log_revenue, estimate = .pred) %>% mutate(Model = "Baseline"),
   reg_metrics(pred_lr, truth = log_revenue, estimate = .pred)       %>% mutate(Model = "Linear Regression"),
   reg_metrics(pred_ridge, truth = log_revenue, estimate = .pred)    %>% mutate(Model = "Ridge"),
@@ -2055,3 +2063,4 @@ model_comparison <- bind_rows(
   arrange(rmse)
 
 model_comparison
+```
