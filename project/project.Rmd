@@ -2128,3 +2128,175 @@ final_models_comparison = data.frame(
 knitr::kable(final_models_comparison, caption = "Konačno poređenje performansi svih modela na test setu")
 ```
 Iako napredni nelinearni algoritmi (poput GBM-a) pokazuju visoku prediktivnu snagu, linearni modeli (linerarna regresija  i Lasso) ostaju optimalan izbor za ovaj skup podataka, jer sa minimalnom kompleksnošću i maksimalnom interpretabilnošću daju najpreciznije rezultate na neviđenim podacima.
+
+
+## 7.13 Model Interpretation — Analiza reziduala
+
+Nakon što smo kroz uporednu analizu utvrdili da linearni modeli (linearna regresija i Lasso) daju najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
+
+### 7.13.1 Residual vs Predicted (Analiza reziduala u odnosu na predikcije)
+
+Prvi korak obuhvata grafičko poređenje predviđenih vrednosti i dobijenih reziduala (Actual - Predicted) na test setu
+
+```{r}
+# Generisanje predikcija i reziduala na test setu za linearnu regresiju
+
+test_preds = predict(lr_model, newdata = test_set_processed)
+test_residuals = test_set_processed$log_revenue - test_preds
+
+res_df = data.frame(
+  Actual = test_set_processed$log_revenue,
+  Predicted = test_preds,
+  Residuals = test_residuals
+)
+
+
+# Grafikon: Residuals vs Predicted
+ggplot(res_df, aes(x = Predicted, y = Residuals)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method = "loess", se = FALSE, color = "darkorange") +
+  labs(title = "Residuals vs Predicted na test setu", 
+       x = "Prediktovane vrednosti (log_revenue)", 
+       y = "Reziduali (Stvarno - Predikcija)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
+```
+Tačke su ravnomerno rasute oko nulte linije, a glatka narandžasta linija (LOESS) prati horizontalnu osu blizu nule. To potvrđuje da model nema izraženu nelinearnu pristrasnost i da zadržava stabilnost i na neviđenim test podacima.
+
+### 7.13.2 Q-Q plot (Provera normalnosti distribucije reziduala)
+
+Proveravamo da li greške modela prate normalnu raspodelu, što je ključno za validnost statističkih zaključaka.
+
+```{r}
+ggplot(res_df, aes(sample = Residuals)) +
+  stat_qq(color = "steelblue", alpha = 0.6) +
+  stat_qq_line(color = "red", linetype = "dashed") +
+  labs(title = "Normal Q-Q Plot reziduala na test setu", 
+       x = "Teoretski kvantili", 
+       y = "Uzorci kvantili (Reziduali)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
+```
+Reziduali se lepo drže i prate liniju u centralnom delu, dok se na desnom kraju javlja izraženije odstupanje ka višim kvantilima. Iako to ukazuje na nekoliko većih grešaka kod ekstremnih vrednosti, s obzirom na prirodu realnih podataka, to je sasvim normalno i ne narušava ukupnu pouzdanost modela.
+
+
+### 7.13.3 Analiza grešaka na ekstremnim opservacijama
+
+U ovo koraku identifikujemo instance sa najvećim apsolutnim greškama predikcije kako bismo utvrdili da li model sistematski podbacuje kod specifičnih ekstremnih slučajeva.
+
+```{r}
+res_df[, "Abs_Residuals"] = abs(res_df[, "Residuals"])
+extreme_errors = res_df[order(-res_df[, "Abs_Residuals"]), ]
+
+knitr::kable(
+  head(extreme_errors[, c("Actual", "Predicted", "Residuals", "Abs_Residuals")], 5), 
+  caption = "Top 5 opservacija sa najvećom greškom predviđanja na test setu"
+)
+```
+Actual (stvarne vrednosti log_revenue): Kreću se između 10.49 i 11.79, što su izuzetno visoke vrednosti za prihod u poređenju sa prosekom skupa podataka (gde je većina vrednosti znatno niža, s obzirom na to da su predikcije modela uglavnom oko 7.6 do 8.9).
+
+Pošto su ove stvarne vrednosti drastično veće od onoga što linearni model može da predvidi na osnovu datih prediktora, tabela direktno dokazuje da su u pitanju ekstremni outliear-i, retke ali visoke vrednosti.
+
+### 7.13.4 Identifikacija sistematskih grešaka (Bias i rasipanje)
+
+Kvantitativno proveravamo prosečnu pristrasnost (bias) modela na test setu, koja bi trebala da teži nuli.
+
+```{r}
+mean_bias = mean(test_residuals)
+print(paste("Prosečna greška (Bias) na test setu:", round(mean_bias, 6)))
+```
+Ovako mala vrednost bias-a potvrđuje da model nema pristrasnosto na novim  neviđenim podacima.
+
+## 7.14 Feature Importance (Analiza značajnosti prediktora)
+
+### 7.14.1 Random Forest importance
+
+
+U prvoj fazi koristimo  metodu baziranu na Random Forest-u  da utvrdimo koje varijable unose najveće  povećanje greške pri permutaciji tokom građenja stabala.
+
+
+```{r}
+# Izračunavanje značajnosti varijabli za caret train model
+importance_scores = varImp(rf_model, scale = FALSE)
+
+# Pretvaranje u data frame
+rf_imp_df = data.frame(
+  Variable = rownames(importance_scores$importance),
+  Importance = importance_scores$importance[, 1]
+)
+
+# Sortiranje u opadajućem redosledu
+rf_imp_df = rf_imp_df[order(-rf_imp_df$Importance), ]
+
+# Vizuelizacija top 10 najvažnijih varijabli
+ggplot(head(rf_imp_df, 10), aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top 10 najvažnijih varijabli (Random Forest)",
+       x = "Varijable",
+       y = "Značajnost") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
+```
+Grafik jasno pokazuje da segmenti kupaca (customer_segmentNew i customer_segmentRegular) apsolutno dominiraju po važnosti, dok značajan uticaj na predikciju ostvaruju i kategorije proizvoda (product_categoryElectronics) i stopa konverzije.
+
+### 7.14.2 Permutation importance (Permutaciona važnost)
+
+Kao dopunu Random Forest analizi, primenjujemo permutacionu važnost nad test setom kako bismo utvrdili stvarni pad performansi modela kada se vrednosti pojedinačnih varijabli nasumično promešaju.
+
+```{r}
+# 1. Izračunavanje permutacione važnosti sa pred_wrapper-om
+pfun = function(object, newdata) {
+  predict(object, newdata = newdata)
+}
+
+perm_imp = vi(rf_model, method = "permute", 
+               train = test_set_processed, 
+               target = "log_revenue", 
+               metric = "RMSE",
+               pred_wrapper = pfun)
+
+# 2. Ručno crtanje preko ggplot2 (zaobilazi grešku sa xlim)
+ggplot(head(perm_imp, 10), aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Permutaciona važnost varijabli (Test set)",
+       x = "Varijable",
+       y = "Povećanje greške (RMSE)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
+```
+
+Gragik nam pokazuje da varijable customer_segment i product_category imaju apsolutno najveći uticaj na tačnost modela. Njihovo mešanje izaziva drastičan porast greške (RMSE), dok ostali faktori poput sezone ili kanala prodaje imaju znatno manji uticaj.
+
+
+### 7.14.3 Compare feature rankings (Poređenje rang-lista prediktora)
+
+U završnom koraku upoređujemo rang-liste najvažnijih varijabli dobijene kroz Random Forest i Permutation importance analizu kako bismo potvrdili konzistentnost modela.
+
+```{r}
+comparison_summary = data.frame(
+  Rank = 1:5,
+  Random_Forest = c("customer_segmentNew", "customer_segmentRegular", "product_categoryElectronics", "conversion_rate", "customer_segmentVIP"),
+  Permutation_Importance = c("customer_segment", "product_category", "season", "sales_channel", "num_previous_purchases")
+)
+
+knitr::kable(
+  comparison_summary,
+  caption = "Poređenje vodećih prediktora po različitim metodama značajnosti"
+)
+```
+Mozemo da vidimo da  Random Forest ulazi u detalje i izdvaja konkretne tipove kupaca (poput novih korisnika) i specifične kategorije, permutaciona analiza na nivou celih obeležja potvrđuje širu sliku — da su nam segmenti kupaca i vrste proizvoda glavni oslonac. U suštini, obe metode govore istu stvar: ko kupuje i šta se kupuje ključne su stvari koje pokreću prihod
+
+
+# 8 Zaključak
+
+U ovom radu smo se bavili predviđanjem prihoda od prodaje (sales_revenue_usd) korišćenjem modela mašinskog učenja na osnovu skupa podataka Marketing & Sales. Proces je obuhvatio pripremu i čišćenje podataka, imputaciju vrednosti (MICE/PMM), eksplorativnu analizu, kreiranje novih obeležja (feature engineering) i evaluaciju različitih regresionih modela.  
+
+Analiza je pokazala da su ključni faktori prihoda segment kupaca, kategorija proizvoda, istorija kupovina, stopa konverzije i sezonski trendovi. Kreiranjem novih promenljivih uspešno su izdvojeni pokretači poslovanja i smanjena multikolinearnost.  
+
+Poređenje modela pokazalo je da su linearna i Lasso regresija ostvarile najstabilnije rezultate uz visoku interpretabilnost, potvrđujući da su za ovaj skup podataka optimalne zbog ravnoteže između jednostavnosti i preciznosti. Projekat se u budućnosti može unaprediti naprednim podešavanjem hiperparametara  modela ili primenom složenijih algoritama. 
+
+
+Ovaj rad potvrđuje da kombinacija kvalitetne pripreme podataka, inženjeringa feature-a i proverenih regresionih modela predstavlja pouzdan pristup za donošenje informisanih poslovnih i finansijskih odluka.  
