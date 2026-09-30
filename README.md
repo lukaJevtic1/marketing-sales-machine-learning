@@ -120,14 +120,14 @@ Moguća unapređenja: dodatno podešavanje hiperparametara i primena složenijih
 ```r
 install.packages(c(
   "tidyverse", "ggplot2", "dplyr", "tidyr", "knitr",
-  "mice",          # imputacija (MICE / PMM)
-  "car",           # VIF / GVIF
-  "caret",         # trening i unakrsna validacija
-  "glmnet",        # Ridge i Lasso
-  "rpart",         # Decision Tree
-  "randomForest",  # Random Forest
-  "gbm",           # Gradient Boosting
-  "vip"            # permutaciona važnost
+  "mice",         
+  "car",          
+  "caret",        
+  "glmnet",        
+  "rpart",         
+  "randomForest",  
+  "gbm",           
+  "vip"           
 ))
 ```
 
@@ -149,10 +149,10 @@ install.packages(c(
 
 ```
 ├── project/
-│   ├── project.Rmd                  # kompletna analiza (kod + objašnjenja)
-│   ├── project.nb.html              # izveštaj (R notebook)
-│   ├── project.pdf                  # izveštaj (knit)
-│   └── marketing_sales_dataset.csv  # skup podataka
+│   ├── project.Rmd                  
+│   ├── project.nb.html              
+│   ├── project.pdf                  
+│   └── marketing_sales_dataset.csv  
 ├── .gitignore
 └── README.md
 ```
