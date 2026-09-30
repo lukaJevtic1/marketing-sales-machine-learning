@@ -136,15 +136,7 @@ Moguća unapređenja: dodatno podešavanje hiperparametara i primena složenijih
 
 ```r
 install.packages(c(
-  "tidyverse", "ggplot2", "dplyr", "tidyr", "knitr",
-  "mice",         
-  "car",          
-  "caret",        
-  "glmnet",        
-  "rpart",         
-  "randomForest",  
-  "gbm",           
-  "vip"           
+  "mice","tidyverse","knitr","lmtest","car","randomForest","glmnet","caret","rpart","rpart.plot","vip"
 ))
 ```
 
