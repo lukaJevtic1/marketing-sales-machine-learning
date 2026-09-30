@@ -1054,7 +1054,7 @@ ggplot(revenue_comparison_df, aes(x = Value, fill = Metric)) +
 
 Evo ga ključni momenat --- desno nam je originalni prihod sa onim ružnim, dugačkim repom, a levo kad primenimo običan log(). Grafik se odmah pretvorio u lepu, skoro pa normalnu raspodelu. Sad će modeli mnogo lakše i stabilnije da uče na ovim podacima.
 
-### 5.2.3 Q-Q plot 
+### 5.2.3 Q-Q plot za proveru normalnosti log-transformisanog prihoda
 
 ```{r}
 set.seed(123)
@@ -1347,7 +1347,6 @@ feature_selection_summary = data.frame(
 print(feature_selection_summary)
 
 ```
-
 Ovim smo uklonili rizik od nestabilnosti modela usled multikolinearnosti, a zadržali samo one feature koji donose jedinstvenu i korisnu informaciju za predikciju prihoda.
 
 ## 6.2 Statistička selekcija feature-a
@@ -1554,6 +1553,7 @@ print(paste("Ukupan broj feature-a u konačnom skupu:", length(final_model_featu
 ```
 
 Kombinovanjem statističkih metoda, Random Forest-a i Lasso regularizacije formiran je optimalan skup od 8 feature-a (4 numerička i 4 kategorička). Ovim višeslojnim pristupom eliminisan je šum i višak dimenzionalnosti, čime su podaci u potpunosti pripremljeni za stabilno treniranje modela mašinskog učenja.
+
 
 # 7 Machine learning
 
