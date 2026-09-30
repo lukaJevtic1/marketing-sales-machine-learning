@@ -120,14 +120,14 @@ Moguća unapređenja: dodatno podešavanje hiperparametara i primena složenijih
 ```r
 install.packages(c(
   "tidyverse", "ggplot2", "dplyr", "tidyr", "knitr",
-  "mice",          # imputacija (MICE / PMM)
-  "car",           # VIF / GVIF
-  "caret",         # trening i unakrsna validacija
-  "glmnet",        # Ridge i Lasso
-  "rpart",         # Decision Tree
-  "randomForest",  # Random Forest
-  "gbm",           # Gradient Boosting
-  "vip"            # permutaciona važnost
+  "mice",          
+  "car",         
+  "caret",         
+  "glmnet",        
+  "rpart",        
+  "randomForest", 
+  "gbm",          
+  "vip"            
 ))
 ```
 
@@ -137,12 +137,11 @@ install.packages(c(
    ```bash
    git clone https://github.com/lukaJevtic1/marketing-sales-machine-learning.git
    ```
-2. Preuzmite skup podataka sa [Kaggle-a](https://www.kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset) i postavite fajl `marketing_sales_dataset.csv` u koren projekta (ako se već ne nalazi u repozitorijumu).
-3. Otvorite projekat u RStudiju i postavite radni direktorijum:
+2. Otvorite projekat u RStudiju i postavite radni direktorijum:
    ```r
    setwd("putanja/do/foldera/projekta")
    ```
-4. Otvorite `project.Rmd` i pokrenite ga (**Knit**), ili izvršavajte blokove koda redom.
+3. Otvorite `project.Rmd` i pokrenite ga (**Knit**), ili izvršavajte blokove koda redom.
 
 > Rezultati su reproduktivni jer su korišćeni fiksni seed-ovi (`123`, `42`).
 
@@ -150,6 +149,7 @@ install.packages(c(
 
 ```
 ├── project.Rmd                    # kompletna analiza (kod + objašnjenja)
+├── project.nb.html                # izveštaj (knit)
 ├── project.pdf                    # izveštaj (knit)
 ├── marketing_sales_dataset.csv    # skup podataka
 └── README.md
