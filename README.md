@@ -120,14 +120,14 @@ Moguća unapređenja: dodatno podešavanje hiperparametara i primena složenijih
 ```r
 install.packages(c(
   "tidyverse", "ggplot2", "dplyr", "tidyr", "knitr",
-  "mice",          
-  "car",         
-  "caret",         
-  "glmnet",        
-  "rpart",        
-  "randomForest", 
-  "gbm",          
-  "vip"            
+  "mice",          # imputacija (MICE / PMM)
+  "car",           # VIF / GVIF
+  "caret",         # trening i unakrsna validacija
+  "glmnet",        # Ridge i Lasso
+  "rpart",         # Decision Tree
+  "randomForest",  # Random Forest
+  "gbm",           # Gradient Boosting
+  "vip"            # permutaciona važnost
 ))
 ```
 
@@ -137,20 +137,22 @@ install.packages(c(
    ```bash
    git clone https://github.com/lukaJevtic1/marketing-sales-machine-learning.git
    ```
-2. Otvorite projekat u RStudiju i postavite radni direktorijum:
+2. Otvorite projekat u RStudiju i postavite radni direktorijum na folder `project`:
    ```r
-   setwd("putanja/do/foldera/projekta")
+   setwd("putanja/do/marketing-sales-machine-learning/project")
    ```
-3. Otvorite `project.Rmd` i pokrenite ga (**Knit**), ili izvršavajte blokove koda redom.
+3. Otvorite `project.Rmd` i pokrenite ga (**Knit**), ili izvršavajte blokove koda redom. Skup podataka (`marketing_sales_dataset.csv`) učitava se iz istog foldera.
 
 > Rezultati su reproduktivni jer su korišćeni fiksni seed-ovi (`123`, `42`).
 
 ## Struktura repozitorijuma
 
 ```
-├── project.Rmd                    # kompletna analiza (kod + objašnjenja)
-├── project.nb.html                # izveštaj (knit)
-├── project.pdf                    # izveštaj (knit)
-├── marketing_sales_dataset.csv    # skup podataka
+├── project/
+│   ├── project.Rmd                  # kompletna analiza (kod + objašnjenja)
+│   ├── project.nb.html              # izveštaj (R notebook)
+│   ├── project.pdf                  # izveštaj (knit)
+│   └── marketing_sales_dataset.csv  # skup podataka
+├── .gitignore
 └── README.md
 ```
