@@ -34,14 +34,31 @@ Korišćen je skup **Marketing & Sales** sa platforme Kaggle:
 - Tipovi kolona: 6 tekstualnih (`date`, `region`, `sales_channel`, `product_category`, `customer_segment`, `season`), ostale su numeričke
 - Ciljna promenljiva: `sales_revenue_usd` (prosek ≈ 5.911 USD, medijana ≈ 4.340 USD, maksimum ≈ 190.377 USD)
 
-| Grupa | Kolone |
+| Naziv kolone | Opis promenljive |
 | --- | --- |
-| Identifikacija i vreme | `id`, `date`, `season` |
-| Kategorijske | `region`, `sales_channel`, `product_category`, `customer_segment` |
-| Marketing | `marketing_budget_usd`, `ad_spend_online_usd`, `ad_spend_offline_usd`, `num_promotions`, `discount_percentage`, `email_open_rate`, `social_media_followers` |
-| Prodaja i tržište | `num_sales_representatives`, `competitor_price_index`, `website_traffic`, `conversion_rate` |
-| Kupac | `customer_age`, `customer_satisfaction_score`, `days_since_last_purchase`, `num_previous_purchases` |
-| **Cilj** | `sales_revenue_usd` |
+| `id` | Jedinstveni identifikacioni broj transakcije. |
+| `date` | Datum izvršene transakcije. |
+| `region` | Geografski region u okviru MENA tržišta (Riyadh, Dubai, Cairo, Abu Dhabi, Jeddah, Doha, Kuwait City). |
+| `sales_channel` | Kanal preko kojeg je obavljena prodaja (npr. Online, Retail Store). |
+| `product_category` | Kategorija proizvoda (Cosmetics, Electronics, Food & Beverage, itd.). |
+| `customer_segment` | Tip ili segment kupca (Regular, New, Corporate, VIP). |
+| `season` | Sezonski period / kvartal u godini (Q1, Q2, Q3, Q4). |
+| `marketing_budget_usd` | Ukupan opredeljeni marketinški budžet u dolarima. |
+| `ad_spend_online_usd` | Finansijska sredstva uložena u online oglašavanje. |
+| `ad_spend_offline_usd` | Finansijska sredstva uložena u offline marketinške kampanje. |
+| `num_promotions` | Broj aktivnih promotivnih ponuda ili akcija tokom transakcije. |
+| `discount_percentage` | Procenat odobrenog popusta. |
+| `num_sales_representatives` | Broj angažovanih prodajnih predstavnika. |
+| `customer_age` | Starost kupca u godinama. |
+| `customer_satisfaction_score` | Ocena zadovoljstva kupca na skali od 1 do 5. |
+| `competitor_price_index` | Indeks cene konkurencije u odnosu na naš proizvod. |
+| `website_traffic` | Saobraćaj / posete veb-sajtu. |
+| `conversion_rate` | Stopa konverzije posetilaca u kupce. |
+| `email_open_rate` | Procenat otvaranja promotivnih mejlova. |
+| `social_media_followers` | Broj pratilaca brenda na društvenim mrežama. |
+| `days_since_last_purchase` | Broj proteklih dana od poslednje kupovine istog kupca. |
+| `num_previous_purchases` | Ukupan broj prethodnih kupovina koje je kupac ostvario. |
+| `sales_revenue_usd` | Ostvareni prihod od prodaje u dolarima (**ciljna promenljiva – target**). |
 
 > Skup nema duplikata i svi opsezi vrednosti su logički ispravni (starost 18–74, ocena zadovoljstva 2–5, popust do 40%).
 
