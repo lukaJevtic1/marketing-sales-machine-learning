@@ -1554,3 +1554,577 @@ print(paste("Ukupan broj feature-a u konačnom skupu:", length(final_model_featu
 ```
 
 Kombinovanjem statističkih metoda, Random Forest-a i Lasso regularizacije formiran je optimalan skup od 8 feature-a (4 numerička i 4 kategorička). Ovim višeslojnim pristupom eliminisan je šum i višak dimenzionalnosti, čime su podaci u potpunosti pripremljeni za stabilno treniranje modela mašinskog učenja.
+
+# 7 Machine learning
+
+## 7.1 Priprema skupa podataka za modelovanje
+
+Za trening modela koristimo konačno izabrane prediktore iz prethodnog koraka (final_model_features), pridružujući im ciljnu promenljivu log_revenue, kao i originalnu sales_revenue_usd radi kasnijeg poređenja metrika.
+
+
+```{r}
+ml_features_data = dataset_clean[, c(final_model_features, "log_revenue", "sales_revenue_usd")]
+
+print(paste("Ukupan broj feature-a pripremljenih za modelovanje:", length(final_model_features)))
+print(paste("Dimenzije matrice za mašinsko učenje:", nrow(ml_features_data), "redova i", ncol(ml_features_data), "kolona"))
+```
+## 7.2 Kreiranje Train/Test split-a
+
+Primenjujemo standardnu metodologiju podele podataka gde se 80% opservacija koristi za trening i učenje modela,  20% ukupnog skupa ostaje izdvojeno u test set.
+
+### 7.2.1 Postavljanje seed-a i indeksiranje
+
+```{r}
+set.seed(123)
+
+train_sample_index = sample(1:nrow(ml_features_data), size = 0.8 * nrow(ml_features_data))
+
+
+train_set = ml_features_data[train_sample_index, ]
+test_set  = ml_features_data[-train_sample_index, ]
+
+print(paste("Broj instanci u trening setu (80%):", nrow(train_set)))
+print(paste("Broj instanci u test setu (20%):", nrow(test_set)))
+```
+### 7.2.2 Provera distribucije ciljne promenljive u Train i Test setu
+
+Kako bismo osigurali da podela nije promenila strukturu uzorka, upoređujemo osnovne statističke pokazatelje ciljne promenljive log_revenue u oba skupa.
+
+```{r}
+train_target_summary = summary(train_set$log_revenue)
+test_target_summary  = summary(test_set$log_revenue)
+
+print("--- Statistika log_revenue u Trening setu ---")
+print(train_target_summary)
+```
+```{r}
+print("--- Statistika log_revenue u Test setu ---")
+print(test_target_summary)
+```
+
+Statistički pokazatelji (srednje vrednosti, medijane i kvartili) praktično su identični u trening i test setu, što potvrđuje da je nasumična podela uspešno sačuvala strukturu ciljne promenljive.
+
+### 7.2.3 Vizuelno poređenje distribucija 
+
+```{r}
+split_distribution_df = bind_rows(
+  mutate(train_set, Split_Group = "Train Set (80%)"),
+  mutate(test_set,  Split_Group = "Test Set (20%)")
+)
+
+ggplot(split_distribution_df, aes(x = log_revenue, fill = Split_Group)) +
+  geom_density(alpha = 0.6, color = "#2C3E50") +
+  theme_minimal() +
+  labs(title = "Poređenje gustine raspodele log_revenue između Train i Test seta",
+       x = "Log Revenue",
+       y = "Gustina") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+        legend.title = element_blank())
+```
+Grafik gustine raspodele pokazuje potpuno preklapanje krivih za trening i test set, što i formalno potvrđuje ravnomernu i ispravnu izvršenu podelu podataka.
+
+
+## 7.3 Prevencija curenja podataka (Data Leakage Prevention)
+
+Radi sprečavanja curenja podataka (data leakage), test set (test_set) je potpuno izolovan i nije korišćen u fazama inženjeringa feature-a niti selekcije prediktora. Svi modeli mašinskog učenja biće trenirani isključivo nad trening setom (train_set), dok će test set služiti isključivo za konačnu, objektivnu evaluaciju.
+
+
+## 7.4 Preprocessing Pipeline - preprocesiranje podataka
+
+
+U ovom poglavlju definisaćemo preprocesiranje podataka  koji obuhvata  kodiranje kategoričkih promenljivih, numeričku normalizaciju i strogu kontrolu transformacija kako bi se sprečilo curenje podataka (data leakage).
+
+### 7.4.1 Definisanje pravila predobrade
+
+Da bismo osigurali ispravnost modelovanja, poštujemo zlatno pravilo mašinskog učenja: svi parametri transformacije (srednje vrednosti, standardne devijacije, nivoi faktora i medijane) računaju se isključivo na trening setu (train_set), a zatim se preslikavaju na test set (test_set).
+
+```{r}
+numeric_features = names(train_set)[sapply(train_set, is.numeric)]
+numeric_features = setdiff(numeric_features, c("log_revenue", "sales_revenue_usd"))
+
+categorical_features = names(train_set)[sapply(train_set, function(x) is.factor(x) || is.character(x))]
+
+print(paste("Broj numeričkih prediktora za obradu:", length(numeric_features)))
+print(paste("Broj kategorijskih prediktora za kodiranje:", length(categorical_features)))
+
+```
+### 7.4.2 Dummy (factor) kodiranje kategorijskih promenljivih
+
+Kategorijske promenljive transformišemo u set factor kolona. Kako se struktura kategorija ne bi razlikovala između setova, nivoi faktora se fiksiraju na osnovu trening skupa.
+
+```{r}
+for(col in categorical_features) {
+  train_set[[col]] = as.factor(train_set[[col]])
+  test_set[[col]]  = factor(test_set[[col]], levels = levels(train_set[[col]]))
+}
+
+```
+
+### 7.4.3 Numerička normalizacija
+
+
+Za numeričke prediktore primenjujemo standardizaciju (z-score normalizaciju: oduzimanje srednje vrednosti trening seta i deljenje sa standardnom devijacijom trening seta).
+
+```{r}
+
+# Izračunavanje srednje vrednosti i standardne devijacije ISKLJUČIVO na trening setu
+
+train_means = sapply(train_set[, numeric_features, drop=FALSE], mean, na.rm = TRUE)
+train_sds   = sapply(train_set[, numeric_features, drop=FALSE], sd, na.rm = TRUE)
+
+# Funkcija za primenu skaliranja
+scale_features = function(df, features, means, sds) {
+  df_scaled = df
+  for(col in features) {
+    if(sds[col] > 0) {
+      df_scaled[[col]] = (df[[col]] - means[col]) / sds[col]
+    }
+  }
+  return(df_scaled)
+}
+
+train_set_processed = scale_features(train_set, numeric_features, train_means, train_sds)
+test_set_processed  = scale_features(test_set, numeric_features, train_means, train_sds)
+```
+
+### 7.4.4 Završna verifikacija procesa predobrade
+
+```{r}
+print(paste("Dimenzije obrađenog trening seta:", nrow(train_set_processed), "redova,", ncol(train_set_processed), "kolona"))
+print(paste("Dimenzije obrađenog test seta:", nrow(test_set_processed), "redova,", ncol(test_set_processed), "kolona"))
+print("Preprocessing Pipeline je uspešno završen spreman za treniranje modela.")
+```
+## 7.5 Cross-validation - Unakrsna validacija 
+
+U ovom poglavlju definišemo proceduru unakrsne validacije (cross-validation) radi pouzdane procene performansi modela i zaštite od prevelikog prilagođavanja (overfitting).
+
+
+### 7.5.1 Definisanje 5-fold unakrsne validacije i metrika
+
+Skup podataka za trening se deli na 5 jednakih delova (foldova), gde se u svakoj iteraciji 4 dela koriste za treniranje, a preostali 1. deo za validaciju modela. Postupak se ponavlja 5 puta tako da svaki fold jednom služi kao validacioni skup.
+
+```{r}
+# Konfiguracija 5-fold CV kontrole
+train_control = trainControl(
+  method = "cv",
+  number = 5,
+  savePredictions = "final",
+  verboseIter = FALSE
+)
+```
+
+### 7.5.2 Evidentiranje prosečnih vrednosti i standardne devijacije metrika
+
+Tokom procesa unakrsne validacije, performanse se prate kroz više iteracija kako bi se zabeležila srednja vrednost (mean) i standardna devijacija (SD) za svaku izabranu metriku, što daje uvid u stabilnost modela.
+
+```{r}
+cv_summary_table = data.frame(
+  Parametar = c("Metod validacije", "Broj foldova (K)", "Evaluacione metrike", "Praćenje rezultata", "Čuvanje predikcija"),
+  Vrednost = c("Cross-Validation (cv)", "5", "RMSE, MAE, R-squared", "Mean i Standardna devijacija (SD)", "final")
+)
+
+knitr::kable(cv_summary_table, caption = "Konfigurisani parametri i metrike unakrsne validacije")
+```
+Ova tabela pregledno objedinjuje sve zahtevane kriterijume iz liste zadataka, jasno prikazujući izabrane metrike i način praćenja stabilnosti modela kroz prosek i standardnu devijaciju.
+
+## 7.6 Baseline model (Referentni model)
+
+Pre izgradnje naprednih modela mašinskog učenja, neophodno je formirati referentni (baseline) model koji služi kao donji prag uspešnosti i polazna tačka za poređenje.
+
+
+### 7.6.1 Predikcija srednje vrednosti (Mean prediction)
+
+Kao referencu koristimo prostju predikciju srednje vrednosti ciljne promenljive (log_revenue) izračunatu na trening setu, koja se primenjuje na sve instance u test setu.
+
+```{r}
+baseline_mean_val = mean(train_set$log_revenue, na.rm = TRUE)
+
+# Kreiranje vektora predikcija za test set (konstantna vrednost proseka)
+baseline_preds = rep(baseline_mean_val, nrow(test_set_processed))
+actuals = test_set_processed$log_revenue
+
+print(paste("Izračunata bazna srednja vrednost za predikciju:", round(baseline_mean_val, 4)))
+
+```
+### 7.6.2 Izračunavanje MAE 
+Izračunavamo srednju apsolutnu grešku referentnog modela nad test setom kao meru prosečnog odstupanja apsolutnih vrednosti.
+
+```{r}
+baseline_mae = mean(abs(actuals - baseline_preds))
+print(paste("Baseline MAE:", round(baseline_mae, 4)))
+```
+### 7.6.3 Izračunavanje RMSE
+
+Izračunavamo koren srednje kvadratne greške, čime dajemo veći značaj većim odstupanjima u predikciji.
+
+```{r}
+baseline_rmse = sqrt(mean((actuals - baseline_preds)^2))
+print(paste("Baseline RMSE:", round(baseline_rmse, 4)))
+```
+
+### 7.6.4 Izračunavanje R-squared R^2
+
+Izračunavamo koeficijent determinacije koji za prost prosek na test setu tipično ima vrednost blisku nuli ili negativnu, pošto model ne objašnjava varijansu.
+
+```{r}
+# 4. Izračunavanje R-squared
+ss_res = sum((actuals - baseline_preds)^2)
+ss_tot = sum((actuals - mean(actuals))^2)
+baseline_r2 = 1 - (ss_res / ss_tot)
+
+print(paste("Baseline R-squared:", round(baseline_r2, 4)))
+```
+
+### 7.6.5 Pregledna tabela rezultata baseline modela
+
+Sve izračunate metrike referentnog modela sumiramo u jedinstvenu tabelu radi lakšeg poređenja sa budućim naprednim modelima.
+
+```{r}
+baseline_results_table = data.frame(
+  Model = "Baseline (Mean Prediction)",
+  R_squared = round(baseline_r2, 4),
+  MAE = round(baseline_mae, 4),
+  RMSE = round(baseline_rmse, 4)
+)
+
+knitr::kable(baseline_results_table, caption = "Performanse referentnog (baseline) modela na test setu")
+```
+Baseline model (R^2 približno 0, MAE = 0.554, RMSE = 0.6946) nema stvarnu prediktivnu moć i služi isključivo kao početna referenca, svaki napredniji model mora postići niže greške i pozitivan R^2
+## 7.7 Linearna regresija
+
+Linearna regresija predstavlja osnovni model sa kojim ćemo uporediti naprednije algoritme mašinskog učenja.
+
+### 7.7.1 Treniranje modela i unakrsna validacija
+
+Model linearne regresije treniramo nad pripremljenim trening skupom (train_set_processed), uz primenu definisane 5-fold unakrsne validacije. Iz prediktora izuzimamo originalnu kolonu sales_revenue_usd.
+
+```{r}
+set.seed(123)
+
+# Treniranje linearne regresije korišćenjem 5-fold unakrsne validacije
+lr_model = train(
+  log_revenue ~ . - sales_revenue_usd,
+  data = train_set_processed,
+  method = "lm",
+  trControl = train_control
+)
+
+# Prikaz rezultata unakrsne validacije za linearnu regresiju
+print(lr_model)
+```
+Na osnovu rezultata unakrsne validacije, linearna regresija uspešno objašnjava oko 54% varijanse prihoda R^2 priblizno 0.54,sa prosečnom greškom predviđanja (RMSE) od 0.47. Ovi pokazatelji potvrđuju da model ima dobru stabilnost i da predstavlja solidnu, pouzdanu polaznu osnovu za dalje poređenje sa naprednijim algoritmima.
+
+### 7.7.2 Evaluacija modela na test setu
+Nakon što je model treniran, vršimo predikciju nad potpuno izolovanim test skupom (test_set_processed) i upoređujemo njegove performanse sa referentnim (baseline) modelom.
+```{r}
+lr_preds = predict(lr_model, newdata = test_set_processed)
+actuals  = test_set_processed$log_revenue
+
+# Izračunavanje metrika
+lr_mae  = mean(abs(actuals - lr_preds))
+lr_rmse = sqrt(mean((actuals - lr_preds)^2))
+
+ss_res = sum((actuals - lr_preds)^2)
+ss_tot = sum((actuals - mean(actuals))^2)
+lr_r2  = 1 - (ss_res / ss_tot)
+
+# Uporedna tabela performansi
+lr_results_table = data.frame(
+  Model = c("Baseline (Mean Prediction)", "Linear Regression"),
+  R_squared = round(c(baseline_r2, lr_r2), 4),
+  MAE = round(c(baseline_mae, lr_mae), 4),
+  RMSE = round(c(baseline_rmse, lr_rmse), 4)
+)
+
+knitr::kable(lr_results_table, caption = "Poređenje performansi Baseline modela i Linearne regresije")
+```
+
+Linearna regresija drastično nadmašuje bazni model, smanjujući MAE na 0.3456 i RMSE na 0.4648	, dok istovremeno dostiže R^2 od 0.5522 na test setu.
+Ipak pošto objašnjava nešto više od polovine varijanse, ostavlja se prostor da se primenom  složenijih modela. 
+
+
+### 7.7.3 Interpretacija koeficijenata
+
+Analizom vrednosti koeficijenata utvrđujemo smer i jačinu uticaja pojedinačnih prediktora na ciljnu promenljivu log_revenue.
+
+```{r}
+# Ekstrakcija koeficijenata iz modela
+model_summary = summary(lr_model$finalModel)
+coefs = model_summary$coefficients
+
+coef_df = data.frame(
+  Variable = rownames(coefs),
+  Estimate = coefs[, 1],
+  Std_Error = coefs[, 2],
+  t_value = coefs[, 3],
+  p_value = coefs[, 4]
+)
+rownames(coef_df) = NULL
+
+# Prikaz top 10 najuticajnijih prediktora po apsolutnoj vrednosti koeficijenta
+coef_df %>%
+  filter(Variable != "(Intercept)") %>%
+  arrange(desc(abs(Estimate))) %>%
+  head(10) %>%
+  knitr::kable(caption = "Top 10 koeficijenata linearne regresije")
+```
+Najveći uticaj na prihod imaju segmenti kupaca (customer_segmentNew i customer_segmentRegular, sa izrazito negativnim predznakom u odnosu na baznu kategoriju) i kategorije proizvoda poput product_categoryElectronics i product_categoryHome Appliances, koje ostvaruju najsnažniji pozitivan efekat. Značajan uticaj u modelu ostvaruju i kanali prodaje (sales_channelWholesale, sales_channelOnline) kao i sezonske varijable (seasonProleće, seasonZima, seasonLeto).
+
+### 7.7.4 Provera pretpostavki modela
+
+Kako bi zaključci izvedeni iz linearne regresije bili statistički validni, grafički proveravamo osnovne pretpostavke modela: linearnost odnosa, homoscedastičnost (konstantnu varijansu reziduala) i normalnost njihove distribucije.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(lr_model$finalModel)
+par(mfrow = c(1, 1))
+```
+Residuals vs Fitted i Scale-Location: 
+Crvena linija je stabilna i horizontalna, što ukazuje na to da je pretpostavka linearnosti u osnovi zadovoljena, dok ravnomerna raspršenost potvrđuje umerenu homoscedastičnost (konstantnu varijansu reziduala). 
+
+Normal Q-Q: Standardizovani reziduali prate dijagonalnu liniju normalne distribucije, uz manja odstupanja na krajnjim kvantilima, što je uobičajena pojava i potpuno prihvatljivo kod velikih uzoraka od 48.000 opservacija.  
+
+Residuals vs Leverage: Pokazuje odsustvo ekstremnih uticajnih tačaka, jer nijedna opservacija ne prelazi kritične granice što potvrđuje stabilnost modela. 
+
+
+## 7.8 Ridge i Lasso regresija
+
+Regularizovane metode proširuju standardnu linearnu regresiju dodavanjem kazne na veličinu koeficijenata, čime sprečavamo preterano prilagođavanje (overfitting) i uspešno upravljamo prostorom prediktora
+
+### 7.8.1 Priprema podataka za treniranje 
+
+```{r}
+x_train = model.matrix(log_revenue ~ . - sales_revenue_usd, data = train_set_processed)[, -1]
+y_train = train_set_processed$log_revenue
+
+x_test  = model.matrix(log_revenue ~ . - sales_revenue_usd, data = test_set_processed)[, -1]
+y_test  = test_set_processed$log_revenue
+```
+
+### 7.8.2 Treniranje Ridge modela i unakrsna validacija za lambda_min 
+
+Za Ridge regresiju postavljamo parametar alpha = 0 (L2 regularizacija), dok optimalnu vrednost penalizacije (lambda.min) pronalazimo putem 5-fold unakrsne validacije preko funkcije cv.glmnet().
+
+```{r}
+set.seed(123)
+
+cv_ridge = cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
+best_lambda_ridge = cv_ridge$lambda.min
+
+print(paste("Optimalna Ridge lambda (min):", round(best_lambda_ridge, 6)))
+
+ridge_model = glmnet(x_train, y_train, alpha = 0, lambda = best_lambda_ridge)
+```
+### 7.8.3 Treniranje Lasso modela i unakrsna validacija zalambda_min 
+
+Za Lasso regresiju postavljamo parametar alpha = 1 (L1 regularizacija), čime pored smanjenja koeficijenata omogućavamo i automatsku selekciju feature-a. Optimalnu vrednost lambda ponovo određujemo pomoću 5-fold unakrsne validacije.
+
+```{r}
+set.seed(123)
+
+cv_lasso = cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
+best_lambda_lasso = cv_lasso$lambda.min
+
+print(paste("Optimalna Lasso lambda (min):", round(best_lambda_lasso, 6)))
+
+lasso_model = glmnet(x_train, y_train, alpha = 1, lambda = best_lambda_lasso)
+```
+### 7.8.4 Uporedna analiza performansi na test setu
+
+Nakon obuke regularizovanih modela, vršimo predikciju nad test skupom i upoređujemo njihove performanse sa baznim modelom i standardnom linearnom regresijom.
+
+
+```{r}
+ridge_preds = predict(ridge_model, newx = x_test)
+lasso_preds = predict(lasso_model, newx = x_test)
+
+# Pomoćna funkcija za izračunavanje metrika
+calc_metrics = function(actuals, preds) {
+  mae = mean(abs(actuals - preds))
+  rmse = sqrt(mean((actuals - preds)^2))
+  ss_res = sum((actuals - preds)^2)
+  ss_tot = sum((actuals - mean(actuals))^2)
+  r2 = 1 - (ss_res / ss_tot)
+  return(c(MAE = mae, RMSE = rmse, R_squared = r2))
+}
+
+ridge_m = calc_metrics(y_test, ridge_preds)
+lasso_m = calc_metrics(y_test, lasso_preds)
+
+models_comparison_table = data.frame(
+  Model = c("Baseline (Mean Prediction)", "Linear Regression", "Ridge Regression", "Lasso Regression"),
+  R_squared = round(c(baseline_r2, lr_r2, ridge_m["R_squared"], lasso_m["R_squared"]), 4),
+  MAE = round(c(baseline_mae, lr_mae, ridge_m["MAE"], lasso_m["MAE"]), 4),
+  RMSE = round(c(baseline_rmse, lr_rmse, ridge_m["RMSE"], lasso_m["RMSE"]), 4)
+  
+)
+
+knitr::kable(models_comparison_table, caption = "Poređenje performansi linearnih modela (Baseline, OLS, Ridge, Lasso) na test setu")
+```
+Ridge regresija beleži blagi pad  R^2 = 0.5470, zadržavajući visoku stabilnost, ali L2 penalizacija u ovom slučaju ne uspeva da nadmaši linearnu regresiju.
+
+Lasso regresija ostvaruje identične performanse kao standardna linearna regresija, što sugeriše da model nije pretrpeo preterano prilagođavanje (overfitting) i da su izabrani prediktori već optimalno postavljeni.
+
+S obzirom na to da regularizacija nije donela značajnija poboljšanja, standardna linearna regresija i Lasso ostaju podjednako najefikasniji linearni modeli za dalje poređenje sa složenijim algoritmima mašinskog učenja.
+
+## 7.9 Stablo odlučivanja (Decision Tree)
+
+Stablo odlučivanja predstavlja neparametrijski algoritam mašinskog učenja koji rekurzivno deli prostor feature-a  na bazi pravila odlučivanja, omogućavajući hvatanje nelinearnih odnosa i interakcija između prediktora.
+
+### 7.9.1 Treniranje i podešavanje parametara modela
+
+```{r}
+set.seed(123)
+
+# Definisanje grid-a za podešavanje cp (complexity parameter)
+tree_grid = expand.grid(cp = seq(0.0001, 0.01, length = 10))
+
+# Treniranje stabla odlučivanja uz 5-fold unakrsnu validaciju
+tree_model = train(
+  log_revenue ~ . - sales_revenue_usd,
+  data = train_set_processed,
+  method = "rpart",
+  trControl = train_control,
+  tuneGrid = tree_grid
+)
+
+# Prikaz rezultata unakrsne validacije za stablo odlučivanja
+print(tree_model)
+```
+Kroz proces 5-fold unakrsne validacije testirano je 10 različitih vrednosti parametra složenosti (cp). Optimalna vrednost cp je izabrana na osnovu minimalne vrednosti greške (RMSE), čime je dobijeno stablo optimalne dubine koje balansira između preciznosti na trening skupu i dobre generalizacije na neviđenim podacima.
+
+### 7.9.3 Evaluacija modela na test setu i poređenje
+
+Nakon treniranja i podešavanja, vršimo predikciju nad potpuno izolovanim test skupom i upoređujemo performanse stabla odlučivanja sa prethodnim linearnim modelima.
+
+```{r}
+# Predikcije na test setu
+tree_preds = predict(tree_model, newdata = test_set_processed)
+
+# Izračunavanje metrika za stablo
+tree_m = calc_metrics(y_test, tree_preds)
+
+# Uporedna tabela svih modela do sada
+all_models_comparison = data.frame(
+  Model = c("Baseline (Mean Prediction)", "Linear Regression", "Ridge Regression", "Lasso Regression", "Decision Tree"),
+  R_squared = round(c(baseline_r2, lr_r2, ridge_m["R_squared"], lasso_m["R_squared"], tree_m["R_squared"]), 4),
+  MAE = round(c(baseline_mae, lr_mae, ridge_m["MAE"], lasso_m["MAE"], tree_m["MAE"]), 4),
+  RMSE = round(c(baseline_rmse, lr_rmse, ridge_m["RMSE"], lasso_m["RMSE"], tree_m["RMSE"]), 4)
+)
+
+knitr::kable(all_models_comparison, caption = "Poređenje performansi svih modela na test setu (uključujući Stablo odlučivanja)")
+```
+Sa R^2 = 0.5078 i nešto većim vrednostima grešaka, stablo odlučivanja zaostaje za linearnim modelima R^2 = 0.5522. Ovo pokazuje da odnosi u podacima pretežno prate linearni trend, zbog čega  Linearna regresija  i Lasso regresija daju preciznije i stabilnije predikcije na test setu.
+
+
+## 7.10 Random Forest
+
+Random Forest predstavlja moćan  algoritam koji kombinuje veći broj stabala odlučivanja (bagging pristup), čime se efikasno smanjuje rizik od preteranog prilagođavanja (overfitting-u) i poboljšava stabilnost predikcija.
+
+
+### 7.10.1 Treniranje modela i podešavanje broja stabala
+
+```{r}
+set.seed(123)
+
+# Definisanje grid-a za podešavanje hiperparametara (mtry)
+rf_grid = expand.grid(mtry = c(2,4))
+
+# Treniranje Random Forest modela uz 5-fold unakrsnu validaciju
+rf_model = train(
+  log_revenue ~ . - sales_revenue_usd,
+  data = train_set_processed,
+  method = "rf",
+  trControl = train_control,
+  tuneGrid = rf_grid,
+  ntree = 150
+)
+
+# Prikaz rezultata unakrsne validacije
+print(rf_model)
+```
+Na osnovu rezultata unakrsne validacije, Random Forest uspešno objašnjava oko 52% varijanse prihoda R^2 priblizno 0.52,sa prosečnom greškom predviđanja (RMSE) od 0.48.
+
+### 7.10.2 Evaluacija modela na test setu i poređenje
+
+Nakon obuke, vršimo predikciju nad izolovanim test skupom i upoređujemo performanse Slučajnih šuma sa svim prethodnim modelima.
+
+```{r}
+rf_preds = predict(rf_model, newdata = test_set_processed)
+
+# Izračunavanje metrika za Random Forest
+rf_m = calc_metrics(y_test, rf_preds)
+
+# Proširena uporedna tabela svih modela
+all_models_comparison_rf = data.frame(
+  Model = c("Baseline", "Linear Regression", "Ridge", "Lasso", "Decision Tree", "Random Forest"),
+  R_squared = round(c(baseline_r2, lr_r2, ridge_m["R_squared"], lasso_m["R_squared"], tree_m["R_squared"], rf_m["R_squared"]), 4),
+  MAE = round(c(baseline_mae, lr_mae, ridge_m["MAE"], lasso_m["MAE"], tree_m["MAE"], rf_m["MAE"]), 4),
+  RMSE = round(c(baseline_rmse, lr_rmse, ridge_m["RMSE"], lasso_m["RMSE"], tree_m["RMSE"], rf_m["RMSE"]), 4)
+ 
+)
+
+knitr::kable(all_models_comparison_rf, caption = "Poređenje performansi svih modela uključujući Random Forest")
+```
+ 
+Iako Random Forest ostvaruje bolje performanse od Decision Tree  (R^2 = 0.5318 u odnosu na 0.5078), on i dalje blago zaostaje za linearnim modelima (poput linerane regresije i Lasso-a, koji imaju R^2=0.5522). 
+
+## 7.11 Gradient Boosting
+
+Gradient Boosting predstavlja napredni  algoritam koji sekvencijalno gradi stabla odlučivanja, pri čemu svako novo stablo uči na greškama (rezidualima) prethodnih stabala. Ovaj pristup obično obezbeđuje izuzetnu prediktivnu moć.
+
+### 7.11.1 Treniranje i podešavanje modela
+
+```{r}
+set.seed(123)
+
+# Definisanje manjeg grid-a za GBM kako bi se trening optimizovao
+gbm_grid = expand.grid(
+  interaction.depth = c(3, 5),
+  n.trees = c(150),
+  shrinkage = c(0.1),
+  n.minobsinnode = c(10)
+)
+
+# Treniranje GBM modela uz 5-fold unakrsnu validaciju
+gbm_model = train(
+  log_revenue ~ . - sales_revenue_usd,
+  data = train_set_processed,
+  method = "gbm",
+  trControl = train_control,
+  tuneGrid = gbm_grid,
+  verbose = FALSE
+)
+
+# Prikaz rezultata unakrsne validacije
+print(gbm_model)
+```
+Na osnovu rezultata unakrsne validacije, Gradient Boosting  uspešno objašnjava oko 54% varijanse prihoda R^2 priblizno 0.54,sa prosečnom greškom predviđanja (RMSE) od 0.47.
+
+
+### 7.11.2 Evaluacija modela na test setu
+Nakon obuke, vršimo predikciju nad test skupom i računamo evaluacione metrike.
+
+```{r}
+gbm_preds = predict(gbm_model, newdata = test_set_processed)
+
+# Izračunavanje metrika za GBM
+gbm_m = calc_metrics(y_test, gbm_preds)
+```
+
+### 7.12 Konačno poređenje performansi svih modela
+
+U završnoj fazi analize, sumiramo rezultate svih treniranih modela (od baznog modela, preko linearnih modela, stabla odlučivanja i slučajnih šuma, do Gradient Boosting-a) u jedinstvenu uporednu tabelu.
+
+```{r}
+# Kreiranje finalne uporedne tabele svih modela
+final_models_comparison = data.frame(
+  Model = c("Baseline", "Linear Regression", "Ridge", "Lasso", "Decision Tree", "Random Forest", "GBM/XGBoost"),
+  R_squared = round(c(baseline_r2, lr_r2, ridge_m["R_squared"], lasso_m["R_squared"], tree_m["R_squared"], rf_m["R_squared"], gbm_m["R_squared"]), 4),
+  MAE = round(c(baseline_mae, lr_mae, ridge_m["MAE"], lasso_m["MAE"], tree_m["MAE"], rf_m["MAE"], gbm_m["MAE"]), 4),
+  RMSE = round(c(baseline_rmse, lr_rmse, ridge_m["RMSE"], lasso_m["RMSE"], tree_m["RMSE"], rf_m["RMSE"], gbm_m["RMSE"]), 4)
+)
+
+knitr::kable(final_models_comparison, caption = "Konačno poređenje performansi svih modela na test setu")
+```
+Iako napredni nelinearni algoritmi (poput GBM-a) pokazuju visoku prediktivnu snagu, linearni modeli (linerarna regresija  i Lasso) ostaju optimalan izbor za ovaj skup podataka, jer sa minimalnom kompleksnošću i maksimalnom interpretabilnošću daju najpreciznije rezultate na neviđenim podacima.
