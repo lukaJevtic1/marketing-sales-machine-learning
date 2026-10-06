@@ -163,11 +163,11 @@ install.packages(c(
 
 ```
 ├── project/
-│   ├── project.Rmd                    # kompletna analiza (kod + objašnjenja)
-│   ├── project.Rproj                  # RStudio projekat
-│   ├── project.nb.html                # izveštaj (HTML notebook)
-│   ├── project.nb.pdf                 # izveštaj (PDF)
-│   └── marketing_sales_dataset.csv    # skup podataka
+│   ├── project.Rmd                   
+│   ├── project.Rproj                 
+│   ├── project.nb.html                
+│   ├── project.nb.pdf                 
+│   └── marketing_sales_dataset.csv    
 ├── .gitignore
 └── README.md
 ```
