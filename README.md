@@ -158,10 +158,11 @@ install.packages(c(
 
 ```
 ├── project/
-│   ├── project.Rmd                  
-│   ├── project.nb.html              
-│   ├── project.nb.pdf                 
-│   └── marketing_sales_dataset.csv  
+│   ├── project.Rmd                   
+│   ├── project.Rproj                 
+│   ├── project.nb.html               
+│   ├── project.nb.pdf                
+│   └── marketing_sales_dataset.csv    
 ├── .gitignore
 └── README.md
 ```
