@@ -124,45 +124,35 @@ Performanse na test skupu:
 - Najveće greške javljaju se na ekstremnim outlierima sa vrlo visokim prihodom, koje model sa datim prediktorima ne može da predvidi.
 - **Najvažniji prediktori** (Random Forest i permutaciona važnost): `customer_segment` i `product_category`, zatim `num_previous_purchases`, `conversion_rate` i `season`.
 
-## Zaključak
+Zaključak
 
-Ključni faktori koji utiču na prihod su **segment kupaca, kategorija proizvoda, istorija kupovina, stopa konverzije i sezonski trendovi**. Linearna regresija i Lasso pokazale su se kao optimalan izbor zbog ravnoteže između jednostavnosti i preciznosti.
+Ključni faktori koji utiču na prihod su segment kupaca, kategorija proizvoda, istorija kupovina, stopa konverzije i sezonski trendovi. Linearna regresija i Lasso pokazale su se kao optimalan izbor zbog ravnoteže između jednostavnosti i preciznosti.
 
 Moguća unapređenja: dodatno podešavanje hiperparametara i primena složenijih algoritama.
 
-## Pokretanje projekta
-
-### Potrebni paketi
-
-```r
+Pokretanje projekta
+Potrebni paketi
+r
 install.packages(c(
-  "mice","tidyverse","knitr","lmtest","car","randomForest","glmnet","caret","rpart","rpart.plot","vip"
+  "mice", "tidyverse", "knitr", "lmtest", "car", "randomForest",
+  "glmnet", "caret", "rpart", "rpart.plot", "vip"
 ))
-```
-
-### Koraci
-
-1. Preuzmite ili klonirajte repozitorijum:
-   ```bash
+Koraci
+Klonirajte repozitorijum:
+bash
    git clone https://github.com/lukaJevtic1/marketing-sales-machine-learning.git
-   ```
-2. Otvorite projekat u RStudiju i postavite radni direktorijum na folder `project`:
-   ```r
-   setwd("putanja/do/marketing-sales-machine-learning/project")
-   ```
-3. Otvorite `project.Rmd` i pokrenite ga (**Knit**), ili izvršavajte blokove koda redom. Skup podataka (`marketing_sales_dataset.csv`) učitava se iz istog foldera.
+Otvorite project/project.Rproj u RStudiju. Radni direktorijum se tada automatski postavlja na folder project. (Ako ne koristite RStudio projekat, postavite ga ručno: setwd("putanja/do/marketing-sales-machine-learning/project").)
+Otvorite project.Rmd i pokrenite ga (Knit), ili izvršavajte blokove koda redom. Skup podataka (marketing_sales_dataset.csv) učitava se iz istog foldera.
 
-> Rezultati su reproduktivni jer su korišćeni fiksni seed-ovi (`123`, `42`).
+Rezultati su ponovljivi jer su korišćeni fiksni seed-ovi (123, 42).
 
-## Struktura repozitorijuma
-
-```
+Struktura repozitorijuma
 ├── project/
-│   ├── project.Rmd                   
-│   ├── project.Rproj                 
-│   ├── project.nb.html               
-│   ├── project.nb.pdf                
-│   └── marketing_sales_dataset.csv    
+│   ├── project.Rmd                    # kompletna analiza (kod + objašnjenja)
+│   ├── project.Rproj                  # RStudio projekat
+│   ├── project.nb.html                # izveštaj (HTML notebook)
+│   ├── project.nb.pdf                 # izveštaj (PDF)
+│   └── marketing_sales_dataset.csv    # skup podataka
 ├── .gitignore
 └── README.md
 ```
