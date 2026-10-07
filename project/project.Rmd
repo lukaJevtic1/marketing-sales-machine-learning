@@ -52,9 +52,9 @@ print(paste("Broj redova je:", nrow(dataset)))
 
 ```
 
-## 2.2 Pregled nekoliko redova,naziva feature-a, i njihova strutura
+## 2.2 Pregled nekoliko redova,naziva feature-a, i njihova struktura
 
-Nakon što smo učitali podatke možemo da proverimo kojih je dimezija set podataka, vidimo da imamo 60 000 vrsta i 23 kolona.
+Nakon što smo učitali podatke možemo da proverimo kojih je dimenzija set podataka, vidimo da imamo 60 000 vrsta i 23 kolona.
 
 U nastavku smo pomoću funkcije head koja izlistava prvih nekoliko vrsta našeg set-a podataka a names nazive feature-a.
 
@@ -65,7 +65,7 @@ head(dataset)
 ```{r}
 names(dataset)
 ```
-Funkcijom str možemo da proverimo kog su tipa naši feature-i i vidimo da ih imamo 23 od čega 6 numeričke (integer - int),10 decimalnih (numeric - num) i 7 karakternih (chr)
+Funkcijom str možemo da proverimo kog su tipa naši feature-i i vidimo da ih imamo 23 od čega 7 numeričke (integer - int),10 decimalnih (numeric - num) i 6 karakternih (chr)
 
 ```{r}
 str(dataset)
@@ -76,9 +76,8 @@ Sada nakon što smo videli koji sve feature-i postoje u setu podataka možemo da
 ## 2.3 Pregled i opis svih feature-a
 
 ```{r}
-
- opis_kolona=data.frame(
-  Kolona = c(
+opis_kolona=data.frame(
+  Kolona= c(
     "id", "date", "region", "sales_channel", "product_category", 
     "customer_segment", "season", "marketing_budget_usd", "ad_spend_online_usd", 
     "ad_spend_offline_usd", "num_promotions", "discount_percentage", 
@@ -114,9 +113,9 @@ Sada nakon što smo videli koji sve feature-i postoje u setu podataka možemo da
   )
 )
 
-
-kable(opis_kolona, col.names = c("Naziv kolone", "Opis promenljive"))
+knitr::kable(opis_kolona, col.names = c("Naziv kolone", "Opis promenljive"))
 ```
+
 
 ## 2.4 Deskriptivna statistika i analiza ciljne promenljive
 
@@ -243,7 +242,7 @@ ggplot(dataset, aes(x = "", y = social_media_followers)) +
 
 Kod broja pratilaca na društvenim mrežama (social_media_followers) vide se tačke koje iskaču ka vrhu, što je sasvim očekivano za brendove koji imaju viralne objave ili veći organski domet.
 
-Za sve posmatrane promenljive jeste da prisutni autlajeri nemaju karakter grešaka u merenju, već su prirodan odraz varijacija u realnom poslovnom okruženju, te se zadržavaju za dalju obradu.
+Za sve posmatrane promenljive jeste da prisutni outlieri nemaju karakter grešaka u merenju, već su prirodan odraz varijacija u realnom poslovnom okruženju, te se zadržavaju za dalju obradu.
 
 ## 2.9 Analiza gustine distribucije
 
@@ -652,7 +651,7 @@ Anderson-Darling rank test, koji evaluira MCAR pretpostavku bez stroge uslovljen
 
 Na osnovu kombinovanih rezultata (nepostojanje značajnosti kod Anderson-Darling testa i prethodne vizuelne analize boxplot dijagrama prihoda), zaključuje se da nema dokaza protiv MCAR pretpostavke. Shodno tome, nedostajuće vrednosti se mogu tretirati kao potpuno nasumične (MCAR), što opravdava primenu naprednih metoda višestruke imputacije poput PMM (Predictive Mean Matching).
 
-# 3.12 Strategija imputacije nedostajućih vrijednosti (MICE / PMM)
+# 3.12 Strategija imputacije nedostajućih vrednosti (MICE / PMM)
 
 Nakon analize nedostajućih vrednosti, kao jedinstvena strategija za obradu izabrana je napredna metoda MICE sa PMM (Predictive Mean Matching) algoritmom.Jednostavnije strategije unapred su odbačene iz metodoloških razloga:
 
@@ -868,7 +867,7 @@ traffic_per_follower: Meri odnos poseta sajtu i broja pratilaca na društvenim m
 dataset_clean$traffic_per_follower = dataset_clean$website_traffic / (dataset_clean$social_media_followers + 1)
 ```
 
-## 4.6 Interakcije feat (Feature Interactions)
+## 4.6 Interakcije feature-a (Feature Interactions)
 
 segment_product: Kombinuje segment kupaca i kategoriju proizvoda, da vidimo koji tipovi kupaca preferiraju koje proizvode.
 
@@ -909,7 +908,7 @@ Nakon detaljnog pregleda statistike, potvrđeno je da su sv novi feature-i uspe�
 
 ## 4.8 Prevencija curenja podataka (Target Leakage Prevention)
 
-Treba programski osiguravamo i verifikujemo da nijedan novih feature-a u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
+Treba programski osiguravamo i verifikujemo da nijedan od novih feature-a u svom nazivu ili definiciji ne koristi našu ciljnu promenljivu (sales_revenue_usd), čime sprečavamo direktno curenje podataka.
 
 ```{r}
 target_variable = "sales_revenue_usd"
@@ -920,7 +919,7 @@ print("Verifikacija uspešna: Nijedan kreirani feature ne koristi ciljnu promenl
 
 Uspešno smo proverili da ni jedan novi feature ne koristi ciljnu promenljivu sales_revenue_usd
 
-U ovm koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
+U ovom koraku treba da analiziramo korelacije između novih numeričkih feature-a i ciljne promenljive (sales_revenue_usd) kako bismo otkrili da li neki od feature-a ima nerealno visoku ili sumnjivu povezanost koja bi ukazivala na indirektno curenje podataka (target leakage).
 
 ```{r}
 num_engineered = c(
@@ -1069,7 +1068,7 @@ Q-Q plot nam pokazuje da se tačkice u sredini lepo drže linije, uz neka manja 
 
 ## 5.3 Analiza outliera
 
-Identifikujemo ekstremne opservacije za prihod primenom interkvartilnog opsega (IQR). Važna napomena: autlajeri se ne brišu automatski.
+Identifikujemo ekstremne opservacije za prihod primenom interkvartilnog opsega (IQR). Važna napomena: outlieri se ne brišu automatski.
 
 ```{r}
 Q1 = quantile(dataset_clean$sales_revenue_usd, 0.25)
@@ -1220,15 +1219,15 @@ U ovom delu analiziramo kretanje ostvarenog prihoda kroz vreme (po godinama, kva
 
 ```{r}
 #1. Prihod po godinama (ekstrakcija godine iz 'date' kolone)
-revenue_by_year = dataset_clean %>%
-  mutate(year = format(as.Date(date), "%Y")) %>%
+revenue_by_year=dataset_clean %>%
+  mutate(year =(year(as.Date(date)))) %>%  
   group_by(year) %>%
-  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
-            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE),
-            n_transactions = n())
-
+  summarise(
+    total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+    mean_revenue = mean(sales_revenue_usd, na.rm = TRUE),
+    n_transactions = n()
+  )  
 print(revenue_by_year)
-
 ```
 
 Poslovanje je izuzetno stabilno od 2020. do 2023. godine, uz ujednačen ukupan prihod (86,6--89,9 miliona USD) i stabilan obim od oko 15.000 transakcija godišnje.
@@ -1237,14 +1236,19 @@ Poslovanje je izuzetno stabilno od 2020. do 2023. godine, uz ujednačen ukupan p
 
 ```{r}
 # 2. Prihod po kvartalima (korišćenje postojeće kolone 'quarter')
-revenue_by_quarter = dataset_clean %>%
+
+revenue_by_year=dataset_clean %>%
+  mutate(quarter =(quarter(as.Date(date)))) %>%  
   group_by(quarter) %>%
-  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
-            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE))
-
-print(revenue_by_quarter)
-
+  summarise(
+    total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+    mean_revenue = mean(sales_revenue_usd, na.rm = TRUE),
+    n_transactions = n()
+  )  
+print(revenue_by_year)
 ```
+
+
 
 Prihodi rastu kroz kvartale i dostižu maksimum od 113,4 miliona USD u četvrtom kvartalu (Q4), čime se potvrđuje snažan sezonski uticaj kraja godine.
 
@@ -1252,10 +1256,14 @@ Prihodi rastu kroz kvartale i dostižu maksimum od 113,4 miliona USD u četvrtom
 
 ```{r}
 # 3. Prihod po mesecima (korišćenje postojeće kolone 'month')
-revenue_by_month = dataset_clean %>%
+revenue_by_month=dataset_clean %>%
+  mutate(month = month(as.Date(date))) %>%
   group_by(month) %>%
-  summarise(total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
-            mean_revenue = mean(sales_revenue_usd, na.rm = TRUE))
+  summarise(
+    total_revenue = sum(sales_revenue_usd, na.rm = TRUE),
+    mean_revenue = mean(sales_revenue_usd, na.rm = TRUE),
+    n_transactions = n()
+  )
 
 print(revenue_by_month)
 ```
@@ -1287,7 +1295,7 @@ U ovom poglavlju prelazimo na analizu multikolinearnosti i definisanje optimalno
 ### 6.1.1 Izračunavanje VIF vrednosti
 
 ```{r}
-vif_model = lm(log_revenue ~ marketing_budget_usd + ad_spend_online_usd + ad_spend_offline_usd + 
+vif_model = lm(log_revenue ~log_budget+ total_ad_spend+spend_per_rep+spend_per_promotion+estimated_conversions+
                  num_promotions + discount_percentage + num_sales_representatives + 
                  customer_age + customer_satisfaction_score + competitor_price_index + 
                  website_traffic + conversion_rate + email_open_rate + 
@@ -1301,52 +1309,18 @@ vif_values = vif(vif_model)
 print("--- GVIF vrednosti za sva feature-a  ---")
 print(round(vif_values, 2))
 ```
+Analizom dobijenih VIF vrednosti uočavamo da sve promenljive imaju vrednosti daleko ispod praga od 5 (maksimalne su estimated_conversions sa 3.48 i total_ad_spend sa 3.41). Ostale promenljive (uključujući log_budget sa VIF = 1.87) takođe nemaju problem sa kolinearnošću, čime je multikolinearnost u potpunosti eliminisana.
 
-Analizom dobijenih VIF vrednosti uočavamo da pojedine promenljive (posebno one vezane za budžete i marketinške kanale) imaju ekstremno visoke vrednosti (značajno iznad standardnog praga od 5 ili 10), što potvrđuje postojanje ozbiljne multikolinearnosti u modelu.
-
-### 6.1.2 Identifikovanje i filtriranje redundantnih prediktora
-
-Na osnovu izračunatih VIF metrika i prethodne korelacione analize, identifikujemo i izdvajamo atribute koji nose duplirane informacije, kako bismo osigurali stabilnost koeficijenata u kasnijoj fazi modelovanja.
 
 ```{r}
 gvif_column = vif_values[, "GVIF"]
-high_vif_features = names(gvif_column[gvif_column > 10])
-print("Feature sa visokim VIF-om (> 10) koja zahtevaju pažnju:")
-print(high_vif_features)
-
-```
-
-```{r}
-
-selected_features = names(gvif_column[gvif_column <= 10])
-print("Konačna lista stabilnih feature-a nakon uklanjanja multikolinearnosti:")
+selected_features = names(gvif_column[gvif_column <5])
+print("Konačna lista stabilnih feature-a:")
 print(selected_features)
 ```
 
-Međutim pošto nam je ad_spend_offline_usd sa GVIF-om 9.90 da kažemo blizu naše granice i njega bi trebalo da uklonimo
+Nakon provere zadržali smo sve  feature koji imaju prag manji od 5  
 
-```{r}
-selected_features = setdiff(selected_features, "ad_spend_offline_usd")
-
-print("Konačna lista stabilnih feature-a nakon uklanjanja multikolinearnosti:")
-print(selected_features)
-```
-
-Redukcijom skupa podataka uspešno smo uklonili redundantne varijable koje su međusobno delile maltene identičan prostor informacija. Time sprečavamo preveliku varijansu ocena parametara u modelima.
-
-### 6.1.3 Dokumentovanje odluka o izboru feature-a
-
-```{r}
-feature_selection_summary = data.frame(
-  Feature = names(gvif_column),
-  VIF = round(gvif_column, 2),
-  Status = ifelse(gvif_column > 9, "Eliminisano / Redundantno", "Zadržano")
-)
-
-print(feature_selection_summary)
-
-```
-Ovim smo uklonili rizik od nestabilnosti modela usled multikolinearnosti, a zadržali samo one feature koji donose jedinstvenu i korisnu informaciju za predikciju prihoda.
 
 ## 6.2 Statistička selekcija feature-a
 
@@ -1382,13 +1356,13 @@ rownames(spearman_ranking) = NULL
 print(spearman_ranking)
 ```
 
-Analizom dobijenih vrednosti Spearman-ove korelacije uočavamo da vodeća mesta zauzimaju prediktori poput num_previous_purchases, customer_satisfaction_score i conversion_rate, koji pokazuju stabilniju monotonu povezanost sa prihodima. Sa druge strane, pojedine numeričke promenljive u donjem delu rang-liste pokazuju izuzetno nisku (gotovo zanemarljivu) povezanost sa ciljnom promenljivom, što ukazuje na njihovu slabiju individualnu prediktivnu vrednost.
+Analizom dobijenih vrednosti Spearman-ove korelacije uočavamo da vodeća mesta zauzimaju budžetski prediktori poput log_budget,total_ad_spend,spend_per_rep  i spend_per_promotion. Sa druge strane, ostale numeričke promenljive (uključujući num_previous_purchases i conversion_rate) pokazuju znatno slabiju ili gotovo zanemarljivu pojedinačnu povezanost sa ciljnom promenljivom.
 
 ### 6.2.2 Rangiranje kategorijskih feature-a po veličini efekta
 
 ```{r}
-categorical_features = selected_features[sapply(dataset_clean[selected_features], function(x) is.factor(x) || is.character(x))]
 
+categorical_features = selected_features[sapply(dataset_clean[selected_features], function(x) is.factor(x) || is.character(x))]
 
 calculate_eta_sq = function(feat, target, data) {
   aov_model = aov(data[[target]] ~ as.factor(data[[feat]]))
@@ -1398,23 +1372,18 @@ calculate_eta_sq = function(feat, target, data) {
   return(ss_effect / ss_total)
 }
 
-
 effect_sizes = sapply(categorical_features, function(feat) {
   calculate_eta_sq(feat, "log_revenue", dataset_clean)
 })
 
-
 categorical_ranking = data.frame(
   Feature = names(effect_sizes),
-  Eta_Squared = round(effect_sizes, 4)
+  Eta_Squared = as.numeric(round(effect_sizes, 4))
 )
 
 categorical_ranking = categorical_ranking[order(-categorical_ranking$Eta_Squared), ]
-rownames(categorical_ranking) = NULL
 
-
-print(categorical_ranking)
-
+knitr::kable(categorical_ranking, row.names = FALSE)
 ```
 
 Analizom možemo da vidimo da kategorijske promenljive poput customer_segment i product_category snažno utiču na varijaciju prihoda. Sa druge strane, promenljiva region pokazuje zanemarljiv uticaj (blizu nule), što ukazuje na to da ne doprinosi prediktivnoj moći modela.
@@ -1452,25 +1421,26 @@ Primenom definisanih statističkih pragova uspešno smo izdvojili atribute čija
 Kako bismo opravdali redukciju feature-a i dokazali da odbacivanje slabih i redundantnih prediktora nije narušilo kvalitet modela, uporedićemo performanse linearnog modela sa svim obeležjima (Full Model) i modela sa konačno izabranim skupom feature-a (Selected Model)
 
 ```{r}
-formula_full = as.formula(paste("log_revenue ~", paste(names(dataset_clean)[names(dataset_clean) != "log_revenue"], collapse = " + ")))
-model_full = lm(formula_full, data = dataset_clean)
+exclude_cols = c("log_revenue", "sales_revenue_usd", "id", "date")
+full_predictors = setdiff(names(dataset_clean), exclude_cols)
 
+
+formula_full = as.formula(paste("log_revenue ~", paste(full_predictors, collapse = " + ")))
+model_full = lm(formula_full, data = dataset_clean)
 
 formula_selected = as.formula(paste("log_revenue ~", paste(final_features, collapse = " + ")))
 model_selected = lm(formula_selected, data = dataset_clean)
 
 
 comparison_summary = data.frame(
-  Model = c("Full Model (Svi feature-i)", "Selected Model (Redukovan skup)"),
-  Number_of_Features = c(length(coef(model_full)) - 1, length(coef(model_selected)) - 1),
+  Model = c("Full Model (Svi opravdani feature-i)", "Selected Model (Redukovan skup)"),
+  Number_of_Predictors = c(length(full_predictors), length(final_features)),
   Adjusted_R2 = c(summary(model_full)$adj.r.squared, summary(model_selected)$adj.r.squared),
   AIC = c(AIC(model_full), AIC(model_selected))
 )
-
 print(comparison_summary)
 ```
-
-Poređenje modela ukazuje na ključan kompromis: Full Model (137 prediktora) postiže visok R\^2_adj (0.945), ali pati od teške multikolinearnosti i prevelike kompleksnosti. Sa druge strane, Selected Model (18 prediktora) ima niži R\^2_adj (0.549) jer su eliminacijom multikolinearnosti uklonjene varijable budžeta koje su nosile primarnu linearnu vezu sa prihodom. Ipak, redukovani model je stabilan, interpretabilan i oslobođen statističkih anomalija, što ga čini pouzdanijim za realnu poslovnu primenu
+Poređenje modela ukazuje na odličan kompromis: Full Model sa 46 feature-a postiže R^2_adj = 0.943, ali je preopterećen multikolinearnošću i prevelikom kompleksnošću. Sa druge strane, Selected Model sa svega 12 feature-a  zadržava visok R^2_adj = 0.902 (objašnjava preko 90% varijanse), pri čemu su uspešno sačuvani ključni budžetski prediktori. Blagi pad objašnjene varijanse od oko 4% predstavlja minimalnu cenu za drastično smanjenje kompleksnosti, potpunu eliminaciju multikolinearnosti i dobijanje stabilnog i interpretabilnog modela.
 
 ## 6.3 Model-based selekcija feature-a
 
@@ -1499,7 +1469,7 @@ rownames(rf_ranking) = NULL
 print(head(rf_ranking, 10))
 ```
 
-Random Forest analiza pokazuje koji feature-i nose najveću prediktivnu moć kada se uzmu u obzir složene, nelinearne interakcije između promenljivih. Vodeće pozicije ubedljivo drže kategoričke promenljive poput segmenta kupaca i kategorije proizvoda, dok značajan doprinos potvrđuju i istorija kupovina i ocene zadovoljstva.
+Random Forest analiza pokazuje koji feature-i imaju najveću prediktivnu moć pri obradi složenih, nelinearnih interakcija. Vodeće pozicije ubedljivo zauzimaju kategorijski atributi, pri čemu segment kupaca (customer_segment ) i kategorija proizvoda (product_category). Među numeričkim prediktorima, najveći nelinearni doprinos pokazuju istorija kupovina (num_previous_purchases), stopa konverzije (conversion_rate) i zadovoljstvo kupaca (customer_satisfaction_score), dok budžetske varijable (log_budget i total_ad_spend) dodatno stabilizuju model u top 10 prediktora.
 
 # 6.3.2 Lasso regularizacija (L1 penalizacija)
 
@@ -1523,8 +1493,7 @@ lasso_selected_dummies = setdiff(lasso_selected_dummies, "(Intercept)")
 print(paste("Broj selektovanih feature-a nakon Lasso regularizacije je :",length(lasso_selected_dummies)))
 
 ```
-
-Lasso regularizacija je automatski eliminisala promenljive sa najmanjim doprinosom pritiskajući njihove koeficijente na tačnu nulu, čime obezbeđujemo minimalnu složenost i optimalnu generalizacionu moć modela.
+Lasso regularizacija je zadržala svih 22 dumi prediktora (nijedan koeficijent nije sveden na nulu), što potvrđuje da su sve izabrane varijable značajne.
 
 # 6.3.3 Poređenje selektovanih feature-a i kreiranje konačne liste
 
@@ -1550,9 +1519,7 @@ print("Konačna lista feature-a za mašinsko učenje (Final Feature List):")
 print(final_model_features)
 print(paste("Ukupan broj feature-a u konačnom skupu:", length(final_model_features)))
 ```
-
-Kombinovanjem statističkih metoda, Random Forest-a i Lasso regularizacije formiran je optimalan skup od 8 feature-a (4 numerička i 4 kategorička). Ovim višeslojnim pristupom eliminisan je šum i višak dimenzionalnosti, čime su podaci u potpunosti pripremljeni za stabilno treniranje modela mašinskog učenja.
-
+Kombinovanjem statističkih metoda, Random Forest-a i Lasso regularizacije formiran je optimalan skup od 12 feature-a (8 numeričkih i 4 kategorijska). Ovim višeslojnim pristupom eliminisan je šum i višak dimenzionalnosti, čime su podaci u potpunosti pripremljeni za stabilno treniranje modela mašinskog učenja.
 
 # 7 Machine learning
 
@@ -1717,14 +1684,15 @@ train_control = trainControl(
 Tokom procesa unakrsne validacije, performanse se prate kroz više iteracija kako bi se zabeležila srednja vrednost (mean) i standardna devijacija (SD) za svaku izabranu metriku, što daje uvid u stabilnost modela.
 
 ```{r}
-cv_summary_table = data.frame(
+cv_summary_table =data.frame(
   Parametar = c("Metod validacije", "Broj foldova (K)", "Evaluacione metrike", "Praćenje rezultata", "Čuvanje predikcija"),
   Vrednost = c("Cross-Validation (cv)", "5", "RMSE, MAE, R-squared", "Mean i Standardna devijacija (SD)", "final")
 )
 
 knitr::kable(cv_summary_table, caption = "Konfigurisani parametri i metrike unakrsne validacije")
 ```
-Ova tabela pregledno objedinjuje sve zahtevane kriterijume iz liste zadataka, jasno prikazujući izabrane metrike i način praćenja stabilnosti modela kroz prosek i standardnu devijaciju.
+Ova tabela pregledno prikazuje konfigurisane parametre unakrsne validacije, navodeći primijenjene evaluacione metrike (RMSE, MAE, R^2) i način praćenja stabilnosti modela kroz srednje vrijednosti i standardne devijacije duž svih 5 foldova.
+
 
 ## 7.6 Baseline model (Referentni model)
 
@@ -1812,7 +1780,15 @@ lr_model = train(
 # Prikaz rezultata unakrsne validacije za linearnu regresiju
 print(lr_model)
 ```
-Na osnovu rezultata unakrsne validacije, linearna regresija uspešno objašnjava oko 54% varijanse prihoda R^2 priblizno 0.54,sa prosečnom greškom predviđanja (RMSE) od 0.47. Ovi pokazatelji potvrđuju da model ima dobru stabilnost i da predstavlja solidnu, pouzdanu polaznu osnovu za dalje poređenje sa naprednijim algoritmima.
+```{r}
+model=lm(log_revenue ~ . - sales_revenue_usd,
+  data = train_set_processed)
+summary(model)
+```
+
+
+
+Na osnovu rezultata unakrsne validacije, linearna regresija uspešno objašnjava oko 90% varijanse prihoda R^2 priblizno 0.90,sa prosečnom greškom predviđanja (RMSE) od 0.22. Ovi pokazatelji potvrđuju da model ima dobru stabilnost i da predstavlja dobru, pouzdanu polaznu osnovu za dalje poređenje sa naprednijim algoritmima.
 
 ### 7.7.2 Evaluacija modela na test setu
 Nakon što je model treniran, vršimo predikciju nad potpuno izolovanim test skupom (test_set_processed) i upoređujemo njegove performanse sa referentnim (baseline) modelom.
@@ -1839,8 +1815,7 @@ lr_results_table = data.frame(
 knitr::kable(lr_results_table, caption = "Poređenje performansi Baseline modela i Linearne regresije")
 ```
 
-Linearna regresija drastično nadmašuje bazni model, smanjujući MAE na 0.3456 i RMSE na 0.4648	, dok istovremeno dostiže R^2 od 0.5522 na test setu.
-Ipak pošto objašnjava nešto više od polovine varijanse, ostavlja se prostor da se primenom  složenijih modela. 
+Linearna regresija drastično nadmašuje bazni model na izolovanom test setu, smanjujući MAE na 0.1710 i RMSE na 0.2181, uz visoki koeficijent determinacije R^2 = 0.9014$. Model objašnjava preko 90% varijanse prihoda, što potvrđuje da izabrani skup od 12 prediktora nosi snažan linearni signal.  
 
 
 ### 7.7.3 Interpretacija koeficijenata
@@ -1868,7 +1843,7 @@ coef_df %>%
   head(10) %>%
   knitr::kable(caption = "Top 10 koeficijenata linearne regresije")
 ```
-Najveći uticaj na prihod imaju segmenti kupaca (customer_segmentNew i customer_segmentRegular, sa izrazito negativnim predznakom u odnosu na baznu kategoriju) i kategorije proizvoda poput product_categoryElectronics i product_categoryHome Appliances, koje ostvaruju najsnažniji pozitivan efekat. Značajan uticaj u modelu ostvaruju i kanali prodaje (sales_channelWholesale, sales_channelOnline) kao i sezonske varijable (seasonProleće, seasonZima, seasonLeto).
+Analizom koeficijenata uočava se da najveći negativan uticaj na prihod imaju novi i redovni kupci (customer_segment), dok kategorije Electronics i Home Appliances ostvaruju najjači pozitivan efekat. Od numeričkih prediktora ističe se log_budget, čijim rastom prihod stabilno raste. 
 
 ### 7.7.4 Provera pretpostavki modela
 
@@ -1879,13 +1854,11 @@ par(mfrow = c(2, 2))
 plot(lr_model$finalModel)
 par(mfrow = c(1, 1))
 ```
-Residuals vs Fitted i Scale-Location: 
-Crvena linija je stabilna i horizontalna, što ukazuje na to da je pretpostavka linearnosti u osnovi zadovoljena, dok ravnomerna raspršenost potvrđuje umerenu homoscedastičnost (konstantnu varijansu reziduala). 
+Residuals vs Fitted & Scale-Location:Ravnomerna raspršenost reziduala oko nule potvrđuje da su pretpostavke linearnosti i homoscedastičnosti zadovoljene za glavnu masu podataka.
 
-Normal Q-Q: Standardizovani reziduali prate dijagonalnu liniju normalne distribucije, uz manja odstupanja na krajnjim kvantilima, što je uobičajena pojava i potpuno prihvatljivo kod velikih uzoraka od 48.000 opservacija.  
+Normal Q-Q: Reziduali u centralnom opsegu prate normalnu raspodelu, dok odstupanja na donjem repu ne ugrožavaju stabilnost modela usled velikog uzorka od 48.000 opservacija.  
 
-Residuals vs Leverage: Pokazuje odsustvo ekstremnih uticajnih tačaka, jer nijedna opservacija ne prelazi kritične granice što potvrđuje stabilnost modela. 
-
+Residuals vs Leverage: Ne postoje kritično uticajne tačke koje bi narušile ocene parametara — svega nekoliko opservacija blago dodiruje granice Kukove udaljenosti.
 
 ## 7.8 Ridge i Lasso regresija
 
@@ -1961,7 +1934,7 @@ models_comparison_table = data.frame(
 
 knitr::kable(models_comparison_table, caption = "Poređenje performansi linearnih modela (Baseline, OLS, Ridge, Lasso) na test setu")
 ```
-Ridge regresija beleži blagi pad  R^2 = 0.5470, zadržavajući visoku stabilnost, ali L2 penalizacija u ovom slučaju ne uspeva da nadmaši linearnu regresiju.
+Ridge regresija beleži blagi pad  R^2 = 0.8933, zadržavajući visoku stabilnost, ali L2 penalizacija u ovom slučaju ne uspeva da nadmaši linearnu regresiju.
 
 Lasso regresija ostvaruje identične performanse kao standardna linearna regresija, što sugeriše da model nije pretrpeo preterano prilagođavanje (overfitting) i da su izabrani prediktori već optimalno postavljeni.
 
@@ -2014,7 +1987,7 @@ all_models_comparison = data.frame(
 
 knitr::kable(all_models_comparison, caption = "Poređenje performansi svih modela na test setu (uključujući Stablo odlučivanja)")
 ```
-Sa R^2 = 0.5078 i nešto većim vrednostima grešaka, stablo odlučivanja zaostaje za linearnim modelima R^2 = 0.5522. Ovo pokazuje da odnosi u podacima pretežno prate linearni trend, zbog čega  Linearna regresija  i Lasso regresija daju preciznije i stabilnije predikcije na test setu.
+Sa R^2 = 0.8714 i nešto većim vrednostima grešaka, stablo odlučivanja zaostaje za linearnim modelima R^2 = 0.9014. Ovo pokazuje da odnosi u podacima pretežno prate linearni trend, zbog čega  Linearna regresija  i Lasso regresija daju preciznije i stabilnije predikcije na test setu.
 
 
 ## 7.10 Random Forest
@@ -2043,7 +2016,7 @@ rf_model = train(
 # Prikaz rezultata unakrsne validacije
 print(rf_model)
 ```
-Na osnovu rezultata unakrsne validacije, Random Forest uspešno objašnjava oko 52% varijanse prihoda R^2 priblizno 0.52,sa prosečnom greškom predviđanja (RMSE) od 0.48.
+Unakrsnom validacijom izabran je optimalni parametar mtry = 4, pri kome Random Forest postiže R^2 = 0.9067 i RMSE = 0.2208. Agregacijom 150 stabala odlučivanja uspešno su prevaziđena ograničenja pojedinačnog stabla, čime je model objasnio preko 90.6% varijanse prihoda.
 
 ### 7.10.2 Evaluacija modela na test setu i poređenje
 
@@ -2067,7 +2040,8 @@ all_models_comparison_rf = data.frame(
 knitr::kable(all_models_comparison_rf, caption = "Poređenje performansi svih modela uključujući Random Forest")
 ```
  
-Iako Random Forest ostvaruje bolje performanse od Decision Tree  (R^2 = 0.5318 u odnosu na 0.5078), on i dalje blago zaostaje za linearnim modelima (poput linerane regresije i Lasso-a, koji imaju R^2=0.5522). 
+Random Forest ostvaruje do sada najbolje rezultate (R^2=0.9039
+,RMSE=0.2153), čime je nadmašio i pojedinačno stablo (R^=0.8714) i sve linearne modele (R^2 = 0.9014). Agregacija 150 stabala omogućila je obuhvatanje složenijih obrazaca u podacima uz najnižu ukupnu grešku predikcije na test setu. 
 
 ## 7.11 Gradient Boosting
 
@@ -2099,7 +2073,7 @@ gbm_model = train(
 # Prikaz rezultata unakrsne validacije
 print(gbm_model)
 ```
-Na osnovu rezultata unakrsne validacije, Gradient Boosting  uspešno objašnjava oko 54% varijanse prihoda R^2 priblizno 0.54,sa prosečnom greškom predviđanja (RMSE) od 0.47.
+Na osnovu rezultata unakrsne validacije, Gradient Boosting  uspešno objašnjava oko 93% varijanse prihoda R^2 priblizno 0.9326,sa prosečnom greškom predviđanja (RMSE) od RMSE približno 0.1835.
 
 
 ### 7.11.2 Evaluacija modela na test setu
@@ -2127,42 +2101,40 @@ final_models_comparison = data.frame(
 
 knitr::kable(final_models_comparison, caption = "Konačno poređenje performansi svih modela na test setu")
 ```
-Iako napredni nelinearni algoritmi (poput GBM-a) pokazuju visoku prediktivnu snagu, linearni modeli (linerarna regresija  i Lasso) ostaju optimalan izbor za ovaj skup podataka, jer sa minimalnom kompleksnošću i maksimalnom interpretabilnošću daju najpreciznije rezultate na neviđenim podacima.
-
+Konačni rezultati  potvrdili su jasnu hijerarhiju modela, gde Gradient Boosting (GBM/XGBoost) zauzima ubedljivo prvo mesto sa R^2 = 0.9297, MAE = 0.1458 i RMSE = 0.1842. Iako su linearni modeli (OLS i Lasso) postavili snažan benchmark (R^2 = 0.9014), boosting algoritam je uspeo da dodatno smanji grešku predikcije za preko 14%.Sposobnost sekvencijalnog ispravljanja grešaka čini GBM najpreciznijim rešenjem za predikciju prihoda. 
 
 ## 7.13 Model Interpretation — Analiza reziduala
 
-Nakon što smo kroz uporednu analizu utvrdili da linearni modeli (linearna regresija i Lasso) daju najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
+Nakon što smo kroz uporednu analizu utvrdili daradient Boosting (GBM/XGBoost) daje najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
 
 ### 7.13.1 Residual vs Predicted (Analiza reziduala u odnosu na predikcije)
 
 Prvi korak obuhvata grafičko poređenje predviđenih vrednosti i dobijenih reziduala (Actual - Predicted) na test setu
 
-```{r}
-# Generisanje predikcija i reziduala na test setu za linearnu regresiju
+```{r warning=FALSE, message=FALSE}
+# Generisanje predikcija i reziduala na test setu za GBM model
 
-test_preds = predict(lr_model, newdata = test_set_processed)
-test_residuals = test_set_processed$log_revenue - test_preds
+gbm_preds = predict(gbm_model, newdata = test_set_processed)
+gbm_residuals = test_set_processed$log_revenue - gbm_preds
 
 res_df = data.frame(
   Actual = test_set_processed$log_revenue,
-  Predicted = test_preds,
-  Residuals = test_residuals
+  Predicted = gbm_preds,
+  Residuals = gbm_residuals
 )
 
-
-# Grafikon: Residuals vs Predicted
+# Grafikon: Residuals vs Predicted (GBM)
 ggplot(res_df, aes(x = Predicted, y = Residuals)) +
-  geom_point(alpha = 0.5, color = "steelblue") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  geom_smooth(method = "loess", se = FALSE, color = "darkorange") +
-  labs(title = "Residuals vs Predicted na test setu", 
-       x = "Prediktovane vrednosti (log_revenue)", 
+  geom_point(alpha = 0.4, color = "#2C3E50") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  geom_smooth(method = "loess", se = FALSE, color = "darkorange", size = 1) +
+  labs(title = "Residuals vs Predicted na test setu (GBM Model)", 
+       x = "Predviđene vrednosti (log_revenue)", 
        y = "Reziduali (Stvarno - Predikcija)") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
 ```
-Tačke su ravnomerno rasute oko nulte linije, a glatka narandžasta linija (LOESS) prati horizontalnu osu blizu nule. To potvrđuje da model nema izraženu nelinearnu pristrasnost i da zadržava stabilnost i na neviđenim test podacima.
+U centralnom i najgušćem opsegu predikcija (log_revenue od 7.5 do 9.5), reziduali su ravnomerno raspršeni oko nule, a LOESS linija je potpuno ravna, što potvrđuje stabilnost i odsustvo pristrasnosti. Blagi rast linije na samom desnom rubu (> 10) posledica je manjeg broja opservacija sa ekstremno visokim prihodom.
 
 ### 7.13.2 Q-Q plot (Provera normalnosti distribucije reziduala)
 
@@ -2178,7 +2150,7 @@ ggplot(res_df, aes(sample = Residuals)) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
 ```
-Reziduali se lepo drže i prate liniju u centralnom delu, dok se na desnom kraju javlja izraženije odstupanje ka višim kvantilima. Iako to ukazuje na nekoliko većih grešaka kod ekstremnih vrednosti, s obzirom na prirodu realnih podataka, to je sasvim normalno i ne narušava ukupnu pouzdanost modela.
+Reziduali GBM modela pokazuju izuzetno dobro poklapanje sa teorijskom linijom normalne raspodele duž gotovo celog raspona kvantila. Minimalna odstupanja na samim krajevima repova ne narušavaju opšti zaključak da su greške predikcije normalno distribuirane, što potvrdjuje visoku pouzdanost i stabilnost modela na test setu.
 
 
 ### 7.13.3 Analiza grešaka na ekstremnim opservacijama
@@ -2194,19 +2166,17 @@ knitr::kable(
   caption = "Top 5 opservacija sa najvećom greškom predviđanja na test setu"
 )
 ```
-Actual (stvarne vrednosti log_revenue): Kreću se između 10.49 i 11.79, što su izuzetno visoke vrednosti za prihod u poređenju sa prosekom skupa podataka (gde je većina vrednosti znatno niža, s obzirom na to da su predikcije modela uglavnom oko 7.6 do 8.9).
-
-Pošto su ove stvarne vrednosti drastično veće od onoga što linearni model može da predvidi na osnovu datih prediktora, tabela direktno dokazuje da su u pitanju ekstremni outliear-i, retke ali visoke vrednosti.
+Najveća zabeležena apsolutna greška GBM modela iznosi svega 0.7485, što potvrđuje odsustvo drastičnih outlier-a u predikcijama. Greške se javljaju isključivo na ekstremnim rubovima raspodele — blago precenjivanje kod izuzetno niskih i umereno potcenjivanje kod izrazito visokih prihoda — što je uobičajena pojava pri modelovanju realnih ekonomskih podataka
 
 ### 7.13.4 Identifikacija sistematskih grešaka (Bias i rasipanje)
 
 Kvantitativno proveravamo prosečnu pristrasnost (bias) modela na test setu, koja bi trebala da teži nuli.
 
 ```{r}
-mean_bias = mean(test_residuals)
+mean_bias = mean(gbm_residuals)
 print(paste("Prosečna greška (Bias) na test setu:", round(mean_bias, 6)))
 ```
-Ovako mala vrednost bias-a potvrđuje da model nema pristrasnosto na novim  neviđenim podacima.
+Ovako mala vrednost bias-a potvrđuje da model nema pristrasnost na novim  neviđenim podacima.
 
 ## 7.14 Feature Importance (Analiza značajnosti prediktora)
 
@@ -2239,7 +2209,7 @@ ggplot(head(rf_imp_df, 10), aes(x = reorder(Variable, Importance), y = Importanc
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
 ```
-Grafik jasno pokazuje da segmenti kupaca (customer_segmentNew i customer_segmentRegular) apsolutno dominiraju po važnosti, dok značajan uticaj na predikciju ostvaruju i kategorije proizvoda (product_categoryElectronics) i stopa konverzije.
+Na vrhu po važnosti izdvajaju se novi kupci (customer_segmentNew) i obim budžeta (log_budget, total_ad_spend). Značajan uticaj ostvaruju i redovni kupci, prodaja elektronike te pojedinačne metrike potrošnje, što dokazuje da profil kupca i finansijski ulog diktiraju visinu prihoda.
 
 ### 7.14.2 Permutation importance (Permutaciona važnost)
 
@@ -2268,7 +2238,7 @@ ggplot(head(perm_imp, 10), aes(x = reorder(Variable, Importance), y = Importance
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
 ```
 
-Gragik nam pokazuje da varijable customer_segment i product_category imaju apsolutno najveći uticaj na tačnost modela. Njihovo mešanje izaziva drastičan porast greške (RMSE), dok ostali faktori poput sezone ili kanala prodaje imaju znatno manji uticaj.
+Permutacija varijable customer_segment izaziva ubedljivo najveći porast RMSE greške (preko 0.35), dok izostavljanje prave strukture za product_category, log_budget i total_ad_spend takođe značajno narušava performanse. Ostali prediktori (saeson, sales_channel) imaju sekundarni uticaj na stabilnost predikcija.
 
 
 ### 7.14.3 Compare feature rankings (Poređenje rang-lista prediktora)
@@ -2278,8 +2248,8 @@ U završnom koraku upoređujemo rang-liste najvažnijih varijabli dobijene kroz 
 ```{r}
 comparison_summary = data.frame(
   Rank = 1:5,
-  Random_Forest = c("customer_segmentNew", "customer_segmentRegular", "product_categoryElectronics", "conversion_rate", "customer_segmentVIP"),
-  Permutation_Importance = c("customer_segment", "product_category", "season", "sales_channel", "num_previous_purchases")
+  Random_Forest = c("customer_segmentNew", "log_budget", "total_ad_spend", "customer_segmentRegular", "product_categoryElectronics"),
+  Permutation_Importance = c("customer_segment", "product_category", "log_budget", "total_ad_spend", "season")
 )
 
 knitr::kable(
@@ -2287,16 +2257,18 @@ knitr::kable(
   caption = "Poređenje vodećih prediktora po različitim metodama značajnosti"
 )
 ```
-Mozemo da vidimo da  Random Forest ulazi u detalje i izdvaja konkretne tipove kupaca (poput novih korisnika) i specifične kategorije, permutaciona analiza na nivou celih obeležja potvrđuje širu sliku — da su nam segmenti kupaca i vrste proizvoda glavni oslonac. U suštini, obe metode govore istu stvar: ko kupuje i šta se kupuje ključne su stvari koje pokreću prihod
+Mozemo da vidimo da metodološka konzistentnost oba pristupa. Random Forest detektuje specifične kategorije (novi kupci, elektronika), dok permutaciona analiza na nivou celih obeležja potvrđuje da su segment kupaca, vrsta proizvoda i budžetska ulaganja (log_budget, total_ad_spend) glavni oslonac predikcije. Obe metode potvrđuju istu suštinu: profil kupca, ponuda robe i finansijski ulog su ključni drajveri prihoda.
 
 
 # 8 Zaključak
 
-U ovom radu smo se bavili predviđanjem prihoda od prodaje (sales_revenue_usd) korišćenjem modela mašinskog učenja na osnovu skupa podataka Marketing & Sales. Proces je obuhvatio pripremu i čišćenje podataka, imputaciju vrednosti (MICE/PMM), eksplorativnu analizu, kreiranje novih obeležja (feature engineering) i evaluaciju različitih regresionih modela.  
-
-Analiza je pokazala da su ključni faktori prihoda segment kupaca, kategorija proizvoda, istorija kupovina, stopa konverzije i sezonski trendovi. Kreiranjem novih promenljivih uspešno su izdvojeni pokretači poslovanja i smanjena multikolinearnost.  
-
-Poređenje modela pokazalo je da su linearna i Lasso regresija ostvarile najstabilnije rezultate uz visoku interpretabilnost, potvrđujući da su za ovaj skup podataka optimalne zbog ravnoteže između jednostavnosti i preciznosti. Projekat se u budućnosti može unaprediti naprednim podešavanjem hiperparametara  modela ili primenom složenijih algoritama. 
+U ovom radu sprovedena je predikcija prihoda od prodaje (sales_revenue_usd / log_revenue) primenom modela mašinskog učenja nad Marketing & Sales skupom podataka (60.000 opservacija). Proces je obuhvatio pripremu podataka, MICE/PMM imputaciju, eksplorativnu analizu, inženjering obeležja i evaluaciju više klasa regresionih modela.
 
 
-Ovaj rad potvrđuje da kombinacija kvalitetne pripreme podataka, inženjeringa feature-a i proverenih regresionih modela predstavlja pouzdan pristup za donošenje informisanih poslovnih i finansijskih odluka.  
+Analiza je pokazala da su ključni pokretači prihoda segment kupaca (naročito novi kupci), kategorija proizvoda (elektronika) i obim budžetskih ulaganja (log_budget, total_ad_spend). Kreiranjem novih promenljivih uspešno su izdvojeni ključni poslovni faktori i smanjena multikolinearnost. 
+
+Poređenje modela pokazalo je da je Gradient Boosting (GBM/XGBoost) ostvario ubedljivo najbolje rezultate (R^2 = 0.9297, RMSE = 0.1842), nadmašivši linearnu regresiju (R^2 = 0.9014) i Random Forest (R^2 = 0.9039). Sekvencijalno učenje na greškama omogućilo je GBM-u da obuhvati složene nelinearne interakcije uz zadržavanje visoke pouzdanosti na test setu.
+
+Ovaj rad potvrđuje da kombinacija kvalitetne pripreme podataka, inženjeringa obeležja i naprednih boosting algoritama predstavlja izuzetno pouzdan pristup za donošenje informisanih poslovnih i finansijskih odluka.
+
+
