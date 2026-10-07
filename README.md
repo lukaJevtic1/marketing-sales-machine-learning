@@ -3,8 +3,9 @@
 Seminarski rad iz mašinskog učenja u programskom jeziku **R**. Cilj projekta je sveobuhvatna analiza faktora koji utiču na ostvareni prihod od prodaje (`sales_revenue_usd`) i razvoj regresionih modela koji predviđaju prihod na osnovu marketinških ulaganja, kanala prodaje i ponašanja kupaca.
 
 **Autori:** Danilo Novaković (101/2018), Luka Jevtić (64/2017)  
-**Fakultet:** Prirodno-matematički fakultet, Univerzitet u Kragujevcu  
+**Fakultet:** Prirodno-matematički fakultet, Univerzitet u Kragujevcu
 
+---
 
 ## Sadržaj
 
@@ -21,18 +22,23 @@ Seminarski rad iz mašinskog učenja u programskom jeziku **R**. Cilj projekta j
 
 Analiza i predviđanje prihoda od prodaje ključni su za uspešno poslovanje: omogućavaju kompanijama da pametnije rasporede marketinške budžete, optimizuju prodajne kanale i donesu bolje finansijske odluke. Umesto oslanjanja na subjektivne procene, koriste se podaci i algoritmi mašinskog učenja.
 
-Iz ugla nauke o podacima, ovo je problem **regresije** – ciljna promenljiva je kontinuirana vrednost prihoda, pri čemu je u cilju stabilizacije varijanse i postizanja normalnosti primenjena logaritmatska transformacija (`log_revenue = log(sales_revenue_usd)`).
+Iz ugla nauke o podacima, ovo je problem **regresije** – ciljna promenljiva je kontinuirana vrednost prihoda. Zbog izražene desne asimetrije ciljne promenljive primenjena je logaritamska transformacija:
 
+```r
+log_revenue = log(sales_revenue_usd)
+```
+
+Transformacija je korišćena radi smanjenja desne asimetrije, ublažavanja uticaja ekstremnih vrednosti i dobijanja pogodnije distribucije za regresiono modelovanje.
 
 
 ## Podaci
 
-Korišćen je skup **Marketing & Sales** sa platforme Kaggle:  
-[kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset](https://www.kaggle.com/datasets/abdelfattahibrahim/marketing-sales-dataset)
+Korišćen je skup **Marketing & Sales** sa platforme Kaggle.
 
-- **60.000 instanci** i **23 primarne kolone** iz poslovanja na MENA tržištu (Cairo, Riyadh, Dubai, Abu Dhabi, Jeddah, Amman, Alexandria).
-- Obuhvata trogodišnji period od 2020. do 2023. godine (stabilnih ~15.000 transakcija godišnje).
-- **Ciljna promenljiva:** `sales_revenue_usd` (izražena u USD; izrazito desno asimetrična sa skewness ≈ 6.63).
+- **60.000 instanci** i **23 primarne kolone**.
+- Podaci obuhvataju poslovanje na MENA tržištu.
+- Podaci obuhvataju period od **2020. do 2023. godine**.
+- **Ciljna promenljiva:** `sales_revenue_usd`, izražena u USD i sa izraženom desnom asimetrijom.
 
 ### Pregled originalnih promenljivih
 
@@ -41,20 +47,20 @@ Korišćen je skup **Marketing & Sales** sa platforme Kaggle:
 | `id` | Jedinstveni identifikacioni broj transakcije. |
 | `date` | Datum izvršene transakcije. |
 | `region` | Geografski region u okviru MENA tržišta. |
-| `sales_channel` | Kanal prodaje (Online, Retail Store, Direct Sales, itd.). |
-| `product_category` | Kategorija proizvoda (Electronics, Cosmetics, Clothing, Food & Beverage, Home & Kitchen). |
-| `customer_segment` | Segment kupca (Regular, New, Corporate, VIP). |
+| `sales_channel` | Kanal prodaje. |
+| `product_category` | Kategorija proizvoda. |
+| `customer_segment` | Segment kupca. |
 | `season` | Kvartal / sezona u godini (Q1, Q2, Q3, Q4). |
 | `marketing_budget_usd` | Ukupan opredeljeni marketinški budžet u dolarima. |
 | `ad_spend_online_usd` | Sredstva uložena u online oglašavanje. |
 | `ad_spend_offline_usd` | Sredstva uložena u offline marketinške kampanje. |
-| `num_promotions` | Broj aktivnih promotivnih ponuda tokom transakcije. |
+| `num_promotions` | Broj aktivnih promotivnih ponuda. |
 | `discount_percentage` | Procenat odobrenog popusta. |
 | `num_sales_representatives` | Broj angažovanih prodajnih predstavnika. |
 | `customer_age` | Starost kupca u godinama. |
-| `customer_satisfaction_score` | Ocena zadovoljstva kupca (skala 1–5). |
+| `customer_satisfaction_score` | Ocena zadovoljstva kupca. |
 | `competitor_price_index` | Indeks cene konkurencije u odnosu na naš proizvod. |
-| `website_traffic` | Saobraćaj na veb-sajtu (broj poseta). |
+| `website_traffic` | Saobraćaj na veb-sajtu. |
 | `conversion_rate` | Stopa konverzije posetilaca u kupce. |
 | `email_open_rate` | Procenat otvaranja promotivnih mejlova. |
 | `social_media_followers` | Broj pratilaca brenda na društvenim mrežama. |
@@ -63,36 +69,68 @@ Korišćen je skup **Marketing & Sales** sa platforme Kaggle:
 | `sales_revenue_usd` | Ostvareni prihod od prodaje u dolarima (**ciljna promenljiva**). |
 
 
-
 ## Tok analize
 
 ### 1. Detekcija i imputacija nedostajućih vrednosti
-- Nedostajuće vrednosti identifikovane su u 4 kolone: `email_open_rate`, `discount_percentage`, `customer_satisfaction_score` i `days_since_last_purchase` (svaka sa ~3% missing-a).
-- Sprovedeno je testiranje mehanizma nedostajanja (Chi-Square testovi, MCAR analiza po Hawkins/Anderson-Darling metodologiji).
-- Imputacija je izvršena korišćenjem **MICE algoritma sa PMM metodom** (`m = 5`, `maxit = 5`, `seed = 123`).
+
+- Nedostajuće vrednosti identifikovane su u 4 kolone: `email_open_rate`, `discount_percentage`, `customer_satisfaction_score` i `days_since_last_purchase`.
+- Udeo nedostajućih vrednosti iznosi približno **3% po promenljivoj**.
+- Sprovedeno je testiranje mehanizma nedostajanja pomoću **Chi-Square testova** i MCAR analiza.
+- Za imputaciju je korišćen **MICE algoritam sa PMM metodom** (`m = 5`, `maxit = 5`, `seed = 123`).
+- Nakon imputacije nije ostalo nedostajućih vrednosti u skupu podataka.
 
 ### 2. Feature Engineering
-Kreirana su izvedena obeležja u finansijskim, vremenskim, digitalnim i interakcionim kategorijama (npr. `total_ad_spend`, `online_share`, `log_budget`, `spend_per_rep`, `price_advantage`, `customer_age_group`, `is_weekend`, `season_product`).  
-*Programski je verifikovano da nema curenja podataka (target leakage) prema ciljnoj promenljivoj.*
+
+Kreirana su izvedena obeležja u finansijskim, vremenskim, digitalnim i drugim kategorijama, uključujući:
+
+- `total_ad_spend`
+- `online_share`
+- `log_budget`
+- `spend_per_rep`
+- `spend_per_promotion`
+- `budget_per_traffic`
+- vremenske karakteristike kao što su `month`, `quarter`, `day_of_week` i `is_weekend`
+
+Programski je provereno da se ciljna promenljiva ne koristi na način koji bi doveo do **target leakage-a**.
 
 ### 3. Eksplorativna analiza podataka (EDA) i autlajeri
-- Ciljna promenljiva je log-transformisana u `log_revenue`, čime je postignuta kontinuirana raspodela bliska normalnoj (potvrđeno Q-Q plotom).
-- Identifikovani autlajeri po IQR metodi (~6.36%) zadržani su u skupu jer predstavljaju realne visoke transakcije i uspešne kampanje.
-- Otkriven je izraženi **Q4 efekat** u vremenskoj analizi (znatno viši prihod krajem godine).
+
+- Ciljna promenljiva je log-transformisana u `log_revenue`.
+- Log-transformacija je smanjila izraženu desnu asimetriju ciljne promenljive i omogućila pogodniju osnovu za regresiono modelovanje.
+- Autlajeri su analizirani pomoću IQR metode i grafičkih prikaza.
+- Utvrđeno je da identifikovane ekstremne vrednosti predstavljaju realne poslovne slučajeve, zbog čega su zadržane u skupu podataka.
+- U vremenskoj analizi uočen je izraženiji **Q4 efekat**, odnosno veći prihod tokom četvrtog kvartala.
 
 ### 4. Selekcija obeležja i redukcija dimenzionalnosti
-- **Multikolinearnost (GVIF):** Uklonjeni su kolinearni ad-spend atributi.
-- **Statističko rangiranje:** Spearman-ova korelacija za numeričke i Eta-Squared ($\eta^2$) iz ANOVA modela za kategorijske atribute.
-- **Poređenje modela bez curenja podataka:** Izbačeni su ID, datum i izvorni `sales_revenue_usd` iz punog modela. Redukovani model sa **12 ključnih ulaznih atributa** zadržao je visoku objašnjivost uz drastično manju složenost.
-- **Konačno izabrani prediktori (12):** `log_budget`, `total_ad_spend`, `spend_per_rep`, `num_promotions`, `discount_percentage`, `conversion_rate`, `customer_satisfaction_score`, `num_previous_purchases`, `product_category`, `customer_segment`, `season`, `sales_channel`.
 
+- **Multikolinearnost (GVIF):** analizirani su odnosi između prediktora i uklonjeni redundantni atributi.
+- **Statističko rangiranje:** korišćena je Spearman-ova korelacija za numeričke i Eta-Squared ($\eta^2$) analiza za kategorijske atribute.
+- `id`, `date` i originalna ciljna promenljiva `sales_revenue_usd` nisu korišćeni kao prediktori u konačnim modelima.
+- Redukovani skup prediktora omogućio je smanjenje složenosti modela uz zadržavanje visoke prediktivne moći.
+
+**Konačno izabrani prediktori:**
+
+```text
+log_budget
+total_ad_spend
+spend_per_rep
+num_promotions
+discount_percentage
+conversion_rate
+customer_satisfaction_score
+num_previous_purchases
+product_category
+customer_segment
+season
+sales_channel
+```
 
 
 ## Rezultati modelovanja
 
-Podaci su podeljeni na **Train (80%)** i **Test (20%)** skup uz primenu **5-fold unakrsne validacije** nad trening setom. Test skup od 12.000 instanci korišćen je isključivo za finalnu evaluaciju.
+Podaci su podeljeni na **Train (80%)** i **Test (20%)** skup uz primenu **5-fold unakrsne validacije** nad trening skupom. Test skup od 12.000 instanci korišćen je isključivo za finalnu evaluaciju.
 
-Metrike evaluacije na **Test skupu** (na logaritamskoj skali):
+Metrike evaluacije na **test skupu**, na logaritamskoj skali:
 
 | Model | $R^2$ | MAE | RMSE |
 | :--- | :---: | :---: | :---: |
@@ -102,16 +140,30 @@ Metrike evaluacije na **Test skupu** (na logaritamskoj skali):
 | **Lasso Regression** | 0.9014 | 0.1711 | 0.2181 |
 | **Ridge Regression** | 0.8933 | 0.1788 | 0.2269 |
 | **Decision Tree (CART)** | 0.8714 | 0.1997 | 0.2491 |
-| **Baseline** (Srednja vrednost) | -0.0002 | 0.5540 | 0.6946 |
+| **Baseline** (srednja vrednost) | -0.0002 | 0.5540 | 0.6946 |
 
-### Ključni uvidi:
-1. **Apsolutni pobednik:** **Gradient Boosting (GBM/XGBoost)** ubedljivo zauzima prvo mesto sa $R^2 = 0.9297$ i najnižim greškama ($\text{MAE} = 0.1458$, $\text{RMSE} = 0.1842$), čime je smanjio grešku predikcije za preko 14% u odnosu na linearni benchmark.
-2. **Snažan linearni signal:** Linearna regresija i Lasso postavljaju odličan baseline sa $R^2 = 0.9014$, dok Random Forest ostvaruje $R^2 = 0.9039$.
-3. **Važnost varijabli:** Analiza permutacione važnosti i značajnosti atributa pokazala je da su ubedljivo najjači pokretači prihoda **`customer_segment`** (naročito Novi i VIP kupci), **`product_category`**, budžet (`log_budget`), kao i stopa konverzije (`conversion_rate`).
+### Ključni uvidi
+
+1. **Najbolji model:** **Gradient Boosting (GBM/XGBoost)** ostvario je najbolje rezultate sa $R^2 = 0.9297$, MAE = 0.1458 i RMSE = 0.1842.
+
+2. **Poređenje sa linearnim modelom:** u odnosu na linearnu regresiju, GBM je smanjio RMSE sa 0.2181 na 0.1842, što predstavlja smanjenje greške od približno **15.5%**.
+
+3. **Snažan linearni signal:** Linearna regresija i Lasso ostvarili su $R^2 = 0.9014$, dok je Random Forest ostvario $R^2 = 0.9039$.
+
+4. **Važnost varijabli:** analiza značajnosti i permutacione važnosti pokazala je da među najvažnijim prediktorima dominiraju **`customer_segment`**, **`product_category`**, **`log_budget`** i **`total_ad_spend`**.
+
+
 
 ## Zaključak
 
-Istraživanje je pokazalo da je prihod u poslovanju najsnažnije određen kategorijom kupaca, tipom proizvoda, budžetom i stopom konverzije. Napredne metode, prvenstveno Gradient Boosting (GBM), ostvarile su vrhunske performanse sa preko 92.9% objašnjene varijanse na neviđenom test skupu. S druge strane, Linearna i Lasso regresija ($R^2 \approx 0.9014$) nude odličnu alternativu za produkciju kada je primarna jednostavnost i interpretabilnost.
+Istraživanje je pokazalo da je prihod od prodaje snažno povezan sa karakteristikama kupaca, kategorijom proizvoda i obimom marketinških ulaganja.
+
+Primena kompletnog procesa pripreme podataka, imputacije nedostajućih vrednosti, inženjeringa obeležja, selekcije prediktora i poređenja više regresionih modela omogućila je izgradnju pouzdanih modela za predviđanje prihoda.
+
+Najbolje performanse ostvario je **Gradient Boosting (GBM/XGBoost)** sa $R^2 = 0.9297$ i RMSE = 0.1842, čime je nadmašio ostale testirane modele.
+
+Sa druge strane, **Linearna regresija i Lasso** ostvarile su $R^2 \approx 0.9014$ i predstavljaju dobre alternative kada su jednostavnost i interpretabilnost modela važnije od maksimalne prediktivne preciznosti.
+
 
 ## Pokretanje projekta
 
