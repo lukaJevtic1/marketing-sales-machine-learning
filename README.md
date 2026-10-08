@@ -124,12 +124,10 @@ season
 sales_channel
 ```
 
-
 ## Rezultati modelovanja
 
 Podaci su podeljeni na **Train (80%, 48.000 instanci)** i **Test (20%, 12.000 instanci)** skup (`set.seed(123)`), uz **5-fold unakrsnu validaciju** nad trening skupom. Test skup je korišćen za finalnu evaluaciju modela. Modeli predviđaju `log_revenue`, pa su sve metrike izražene na **logaritamskoj skali**.
 
-Hiperparametri su podešavani na malim gridovima: Random Forest (`mtry` ∈ {2, 4}, `ntree = 150`) i Gradient Boosting (`interaction.depth` ∈ {3, 5}, `n.trees = 150`, `shrinkage = 0.1`, `n.minobsinnode = 10`).
 
 Metrike na **test skupu**:
 
