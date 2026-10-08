@@ -2238,7 +2238,7 @@ ggplot(head(perm_imp, 10), aes(x = reorder(Variable, Importance), y = Importance
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 11))
 ```
 
-Permutacija varijable customer_segment izaziva ubedljivo najveći porast RMSE greške (preko 0.35), dok izostavljanje prave strukture za product_category, log_budget i total_ad_spend takođe značajno narušava performanse. Ostali prediktori (saeson, sales_channel) imaju sekundarni uticaj na stabilnost predikcija.
+Permutacija varijable customer_segment izaziva ubedljivo najveći porast RMSE greške (preko 0.35), dok izostavljanje prave strukture za product_category, log_budget i total_ad_spend takođe značajno narušava performanse. Ostali prediktori (season, sales_channel) imaju sekundarni uticaj na stabilnost predikcija.
 
 
 ### 7.14.3 Compare feature rankings (Poređenje rang-lista prediktora)
@@ -2257,7 +2257,7 @@ knitr::kable(
   caption = "Poređenje vodećih prediktora po različitim metodama značajnosti"
 )
 ```
-Mozemo da vidimo da metodološka konzistentnost oba pristupa. Random Forest detektuje specifične kategorije (novi kupci, elektronika), dok permutaciona analiza na nivou celih obeležja potvrđuje da su segment kupaca, vrsta proizvoda i budžetska ulaganja (log_budget, total_ad_spend) glavni oslonac predikcije. Obe metode potvrđuju istu suštinu: profil kupca, ponuda robe i finansijski ulog su ključni drajveri prihoda.
+Možemo da vidimo da postoji metodološka konzistentnost oba pristupa. Random Forest detektuje specifične kategorije (novi kupci, elektronika), dok permutaciona analiza na nivou celih obeležja potvrđuje da su segment kupaca, vrsta proizvoda i budžetska ulaganja (log_budget, total_ad_spend) glavni oslonac predikcije. Obe metode potvrđuju istu suštinu: profil kupca, ponuda robe i finansijski ulog su ključni drajveri prihoda.
 
 
 # 8 Zaključak
