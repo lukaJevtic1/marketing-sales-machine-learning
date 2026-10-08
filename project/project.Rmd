@@ -7,7 +7,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(mice)
 library(tidyverse)
 library(knitr)
-library(lmtest)
 library(car)
 library(randomForest)
 library(glmnet)
@@ -15,6 +14,7 @@ library(caret)
 library(rpart)
 library(rpart.plot)
 library(vip)
+library(gbm)
 ```
 
 # Analiza skupa podataka Marketing & Sales
@@ -2257,8 +2257,7 @@ knitr::kable(
   caption = "Poređenje vodećih prediktora po različitim metodama značajnosti"
 )
 ```
-Možemo da vidimo da postoji metodološka konzistentnost oba pristupa. Random Forest detektuje specifične kategorije (novi kupci, elektronika), dok permutaciona analiza na nivou celih obeležja potvrđuje da su segment kupaca, vrsta proizvoda i budžetska ulaganja (log_budget, total_ad_spend) glavni oslonac predikcije. Obe metode potvrđuju istu suštinu: profil kupca, ponuda robe i finansijski ulog su ključni drajveri prihoda.
-
+Oba pristupa daju prilično usaglašene rezultate. Dok Random Forest preciznije izdvaja pojedinačne kategorije (poput novih kupaca ili elektronike), permutaciona analiza na nivou celih varijabli ukazuje na to da su segment kupaca, tip proizvoda i ulaganja u marketing (log_budget, total_ad_spend) ključni prediktori. Drugim rečima, oba modela vode do istog zaključka: na ukupne prihode najviše utiču profil kupca, vrsta robe i visina finansijskog uloga.
 
 # 8 Zaključak
 
