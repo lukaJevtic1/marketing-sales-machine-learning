@@ -91,17 +91,17 @@ Kreirana su izvedena obeležja u finansijskim, vremenskim, digitalnim i drugim k
 
 Programski je provereno da nijedno novo obeležje ne koristi ciljnu promenljivu, a korelacije novih obeležja sa ciljem ne ukazuju na indirektno curenje podataka (**target leakage**).
 
-### 3. Eksplorativna analiza podataka (EDA) i autlajeri
+### 3. Eksplorativna analiza podataka (EDA) i outlier-i
 
 - Ciljna promenljiva je jako asimetrična (**skewness ≈ 6.63**), pa je log-transformisana u `log_revenue`. Nakon transformacije raspodela je približno normalna (potvrđeno Q-Q plotom).
-- Autlajeri su analizirani IQR metodom i grafički: **3.816 opservacija (≈ 6.36%)**. Zadržani su jer predstavljaju realne uspešne kampanje, a ne greške u podacima.
+- Outlier-i su analizirani IQR metodom (gornja granica 13.612,81 USD). Identifikovano je **3.816 opservacija (≈ 6.36%)** u gornjem repu distribucije. Zadržani su u skupu jer predstavljaju realne visoke poslovne prihode sa uspešnih tržišta, a ne greške u merenju.
 - Urađene su univarijatna, korelaciona i kategorijska analiza.
 - U vremenskoj analizi prihod je stabilan od 2020. do 2023. (oko 86,6–89,9 miliona USD godišnje), uz izražen **Q4 efekat**: oktobar–decembar donose preko 36 miliona USD mesečno, dok je u prvih šest meseci prihod 22–26 miliona.
 
-### 4. Selekcija obeležja i redukcija dimenzionalnosti
+### 4. Feature Selection i redukcija dimenzionalnosti
 
 1. **Multikolinearnost (GVIF):** analizirani su odnosi između prediktora i uklonjeni redundantni atributi (`marketing_budget_usd`, `ad_spend_online_usd`, `ad_spend_offline_usd`).
-2. **Statističko rangiranje:** Spearman-ova korelacija za numerička i Eta-Squared ($\eta^2$) za kategorijska obeležja. Uklonjeni su slabi prediktori (npr. `region`).
+2. **Statističko rangiranje:** Analizirana je Spearman-ova korelacija za numerička i Eta-Squared ($\eta^2$) za kategorijske feature-e, pri čemu su identifikovani i uklonjeni slabi prediktori (poput region i discount_percentage).
 3. **Model-based potvrda:** Random Forest importance i Lasso regularizacija.
 4. `id`, `date` i originalna ciljna promenljiva `sales_revenue_usd` nisu korišćeni kao prediktori u konačnim modelima.
 
