@@ -138,7 +138,7 @@ colSums(is.na(dataset))
 
 ## 2.6 Provera duplikata i unikatnih vrednosti
 
-U ovom koraku ćemo proveriti da li u našem setu podataka postoje duplikati, odnosno da li se neki redovi u potpunosti ponavljaju.I vidmo na osnovu rezultata da ih nema i da je svaka od 60.000 instanci jedinstvena.
+U ovom koraku ćemo proveriti da li u našem setu podataka postoje duplikati, odnosno da li se neki redovi u potpunosti ponavljaju.I vidimo na osnovu rezultata da ih nema i da je svaka od 60.000 instanci jedinstvena.
 
 ```{r}
 total_duplicate_rows = sum(duplicated(dataset))
@@ -754,7 +754,7 @@ summary(dataset_clean[, c("marketing_budget_usd", "log_budget",
                     "social_media_followers", "log_followers")])
 ```
 
-Pogled na statistiku pre i posle transformacije odlično ilustruje problem koji smo imali sa originalnim podacima. Kod početnih vrednosti za budžet, posete i pratioce vidimo ogroman raskorak između medijane i proseka (recimo, kod saobraćaja je medijana oko 8.000, a prosek skče na preko 24.000 zbog nekoliko drastično velikih vrednosti na desnom kraju). To znači da su podaci bili prilično razvučeni i asimetrični. Kada smo primenili logaritam prosek i medijana su se praktično poklopili, a ekstremni rasponi su svedeni na normalnu meru. Time smo eliminisali raspon velikih brojeva, pa će modeli moći znatno stabilnije i preciznije da uče na ovim podacima.
+Pogled na statistiku pre i posle transformacije odlično ilustruje problem koji smo imali sa originalnim podacima. Kod početnih vrednosti za budžet, posete i pratioce vidimo ogroman raskorak između medijane i proseka (recimo, kod saobraćaja je medijana oko 8.000, a prosek skače na preko 24.000 zbog nekoliko drastično velikih vrednosti na desnom kraju). To znači da su podaci bili prilično razvučeni i asimetrični. Kada smo primenili logaritam prosek i medijana su se praktično poklopili, a ekstremni rasponi su svedeni na normalnu meru. Time smo eliminisali raspon velikih brojeva, pa će modeli moći znatno stabilnije i preciznije da uče na ovim podacima.
 
 ## 4.3 Vremenske karakteristike (Time Features)
 
@@ -1060,7 +1060,7 @@ qqline(sample_revenue, col = "#C0392B", lwd = 2)
 
 ```
 
-Q-Q plot nam pokazuje da se tačkice u sredini lepo drže linije, uz neka manja odstupanja na krajevima,ovo nam potvrđuje da je log-transformacija odlično odradila posao i dovela podatke u formu koja je sasvim stabilna za dalje modelovanje.
+Q-Q plot nam pokazuje da se tačkice u sredini lepo drže linije, uz neka manja odstupanja na krajevima, ovo nam potvrđuje da je log-transformacija odlično odradila posao i dovela podatke u formu koja je sasvim stabilna za dalje modelovanje.
 
 ## 5.3 Analiza outlier-a
 
@@ -1147,7 +1147,7 @@ Neutralna zona: Većina ostalih feature-a (poput poseta sajtu i ocena zadovoljst
 
 Blage negativne veze: Indeks cena konkurencije i popusti (discount_percentage) nalaze se na dnu tabele sa blago negativnim koeficijentom korelacije, što ukazuje na to da visina odobrenog popusta u ovom skupu podataka nema direktnu pozitivnu povezanost sa ukupnim ostvarenim prihodom.
 
-### 5.4.3 Identifikovanje snažnih veza i redundantnih feauture-a
+### 5.4.3 Identifikovanje snažnih veza i redundantnih feature-a
 
 ```{r}
 get_high_correlations = function(matrix, threshold = 0.75) {
@@ -1264,7 +1264,7 @@ revenue_by_month=dataset_clean %>%
 print(revenue_by_month)
 ```
 
-Promet je stabilan u prvoj polovini godine (22--27 miliona USD mesečno), dok u oktobru, novembru i decembru naglo skče na preko 36 miliona USD mesečno.
+Promet je stabilan u prvoj polovini godine (22--27 miliona USD mesečno), dok u oktobru, novembru i decembru naglo skače na preko 36 miliona USD mesečno.
 
 ### 5.6.4 Vizuelizacija sezonskih obrazaca i istraživanje Q4 efekta
 
@@ -1813,7 +1813,7 @@ lr_results_table = data.frame(
 knitr::kable(lr_results_table, caption = "Poređenje performansi Baseline modela i Linearne regresije")
 ```
 
-Linearna regresija drastično nadmašuje bazni model na izolovanom test setu, smanjujući MAE na 0.1710 i RMSE na 0.2181, uz visoki koeficijent determinacije R^2 = 0.9014$. Model objašnjava preko 90% varijanse prihoda, što potvrđuje da izabrani skup od 13 prediktora nosi snažan linearni signal.  
+Linearna regresija drastično nadmašuje bazni model na izolovanom test setu, smanjujući MAE na 0.1710 i RMSE na 0.2181, uz visoki koeficijent determinacije R^2 = 0.9014. Model objašnjava preko 90% varijanse prihoda, što potvrđuje da izabrani skup od 13 prediktora nosi snažan linearni signal.  
 
 
 ### 7.7.3 Interpretacija koeficijenata
@@ -2100,12 +2100,12 @@ final_models_comparison = data.frame(
 knitr::kable(final_models_comparison, caption = "Konačno poređenje performansi svih modela na test setu")
 ```
 
-Konačni rezultati  potvrdili su jasnu hijerarhiju modela, gde Gradient Boosting (GBM) zauzima ubedljivo prvo mesto sa R^2 = 0.9302, MAE = 0.1453 i RMSE = 0.1835..Iako su linearna regresija i Lasso postavili dobre rezulatate (R^2 = 0.9014),gradient boosting algoritam je uspeo da dodatno smanji grešku predikcije za preko 14%.
+Konačni rezultati  potvrdili su jasnu hijerarhiju modela, gde Gradient Boosting (GBM) zauzima ubedljivo prvo mesto sa R^2 = 0.9302, MAE = 0.1453 i RMSE = 0.1835.Iako su linearna regresija i Lasso postavili dobre rezulatate (R^2 = 0.9014),gradient boosting algoritam je uspeo da dodatno smanji grešku predikcije za preko 14%.
 RMSE greška od 0.1835 na logaritamskoj skali odgovara relativnoj grešci predikcije prihoda u dolarima od približno 20%..Sposobnost sekvencijalnog ispravljanja grešaka čini GBM najpreciznijim rešenjem za predikciju prihoda. 
 
 ## 7.13 Model Interpretation - Analiza reziduala
 
-Nakon što smo kroz uporednu analizu utvrdili daradient Boosting (GBM) daje najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
+Nakon što smo kroz uporednu analizu utvrdili Gradient Boosting (GBM) daje najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
 
 ### 7.13.1 Residual vs Predicted (Analiza reziduala u odnosu na predikcije)
 
@@ -2155,7 +2155,7 @@ Reziduali GBM modela pokazuju izuzetno dobro poklapanje sa teorijskom linijom no
 
 ### 7.13.3 Analiza grešaka na ekstremnim opservacijama
 
-U ovo koraku identifikujemo instance sa najvećim apsolutnim greškama predikcije kako bismo utvrdili da li model sistematski podbacuje kod specifičnih ekstremnih slučajeva.
+U ovom koraku identifikujemo instance sa najvećim apsolutnim greškama predikcije kako bismo utvrdili da li model sistematski podbacuje kod specifičnih ekstremnih slučajeva.
 
 ```{r}
 res_df[, "Abs_Residuals"] = abs(res_df[, "Residuals"])
