@@ -1286,7 +1286,7 @@ ggplot(revenue_by_month, aes(x = factor(month), y = total_revenue, group = 1)) +
     axis.text.x = element_text(angle = 0, hjust = 0.5)
   )
 ```
-Dijagram jasno prikazuje sezonske fluktuacije sa strmim usponom u četvrtom kvartalu (sa kulminacijom u oktobru). Ova ujednačenost i pravilnost kroz godine ukazuju na to da podaci imaju sintetička obeležja, što predstavlja jedno od metodoloških ograničenja pri interpretaciji u realnom poslovnom okruženju.
+Na dijagramu je jasno uočljiv izraženi sezonski obrazac sa naglim rastom u četvrtom kvartalu i kulminacijom u oktobru. Ovakva izuzetna ujednačenost i pravilnost iz godine u godinu ukazuju na sintetičku prirodu podataka, što predstavlja jedno od metodoloških ograničenja pri interpretaciji u realnom poslovnom okruženju.
 
 # 6 Feature Selection
 
@@ -2100,12 +2100,12 @@ final_models_comparison = data.frame(
 knitr::kable(final_models_comparison, caption = "Konačno poređenje performansi svih modela na test setu")
 ```
 
-Konačni rezultati  potvrdili su jasnu hijerarhiju modela, gde Gradient Boosting (GBM) zauzima ubedljivo prvo mesto sa R^2 = 0.9302, MAE = 0.1453 i RMSE = 0.1835.Iako su linearna regresija i Lasso postavili dobre rezulatate (R^2 = 0.9014),gradient boosting algoritam je uspeo da dodatno smanji grešku predikcije za preko 14%.
-RMSE greška od 0.1835 na logaritamskoj skali odgovara relativnoj grešci predikcije prihoda u dolarima od približno 20%..Sposobnost sekvencijalnog ispravljanja grešaka čini GBM najpreciznijim rešenjem za predikciju prihoda. 
+Konačni rezultati  potvrdili su jasnu hijerarhiju modela, gde Gradient Boosting (GBM) zauzima ubedljivo prvo mesto sa R^2 = 0.9302, MAE = 0.1453 i RMSE = 0.1835. Iako su linearna regresija i Lasso postavili dobre rezultate (R^2 = 0.9014), gradient boosting algoritam je uspeo da dodatno smanji grešku predikcije za preko 14%.
+RMSE greška od 0.1835 na logaritamskoj skali odgovara relativnoj grešci predikcije prihoda u dolarima od približno 20%. Sposobnost sekvencijalnog ispravljanja grešaka čini GBM najpreciznijim rešenjem za predikciju prihoda. 
 
 ## 7.13 Model Interpretation - Analiza reziduala
 
-Nakon što smo kroz uporednu analizu utvrdili Gradient Boosting (GBM) daje najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
+Nakon što smo kroz uporednu analizu utvrdili da Gradient Boosting (GBM) daje najbolje i najstabilnije rezultate, sprovodimo detaljnu analizu reziduala (grešaka) nad izolovanim test skupom. Ova analiza nam omogućava da sagledamo gde model tačno greši, da li postoje sistematska odstupanja i kako se ponaša na ekstremnim vrednostima.
 
 ### 7.13.1 Residual vs Predicted (Analiza reziduala u odnosu na predikcije)
 
@@ -2269,5 +2269,6 @@ Analiza je pokazala da su ključni pokretači prihoda segment kupaca (naročito 
 Poređenje modela pokazalo je da je Gradient Boosting (GBM) ostvario ubedljivo najbolje rezultate (R^2 = 0.9302, RMSE = 0.1835), nadmašivši linearnu regresiju (R^2 = 0.9014) i Random Forest (R^2 = 0.9016). Sekvencijalno učenje na greškama omogućilo je GBM-u da obuhvati složene nelinearne interakcije uz zadržavanje visoke pouzdanosti na test setu.
 
 Ovaj rad potvrđuje da kombinacija kvalitetne pripreme podataka, inženjeringa obeležja i naprednih boosting algoritama predstavlja izuzetno pouzdan pristup za donošenje informisanih poslovnih i finansijskih odluka.
+
 
 
